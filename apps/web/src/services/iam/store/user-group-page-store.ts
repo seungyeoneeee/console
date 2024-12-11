@@ -130,6 +130,20 @@ export const useUserGroupPageStore = defineStore('page-user-group', () => {
                 ErrorHandler.handleError(e, true);
             }
         },
+        // async listNotificationChannels(params: NotificationListParameters) {
+        //     try {
+        //         const response = await SpaceConnector.clientV2.identity.userGroupChannel.list<NotificationListParameters, ListResponse<NotificationChannelPerUserGroupModel>>(params);
+        //         if (response.results) {
+        //         response.results.forEach(result => {
+        //             state.userGroups.map(userGroup => {
+        //                 userGroup.user_group_id
+        //             }).includes(result.user_group_id)
+        //         })
+        //         }
+        //     } catch (e) {
+        //         ErrorHandler.handleError(e)
+        //     }
+        // }
         updateModalSettings({
             type, title, themeColor,
         }: ModalState) {

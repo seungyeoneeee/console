@@ -1,18 +1,23 @@
 <script lang="ts" setup>
 import {
-    computed, onMounted, reactive,
+    computed, onMounted, reactive, watchEffect,
 } from 'vue';
 
 import { makeDistinctValueHandler } from '@cloudforet/core-lib/component-util/query-search';
 import { getApiQueryWithToolboxOptions } from '@cloudforet/core-lib/component-util/toolbox';
+import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 import { ApiQueryHelper } from '@cloudforet/core-lib/space-connector/helper';
 import { PToolboxTable, PSelectDropdown } from '@cloudforet/mirinae';
 import type { DataTableFieldType } from '@cloudforet/mirinae/types/data-display/tables/data-table/type';
 import type { MenuItem } from '@cloudforet/mirinae/types/inputs/context-menu/type';
 
+import type { ListResponse } from '@/schema/_common/api-verbs/list';
+import type { UserGroupChannelListParameters } from '@/schema/alert-manager/user-group-channel/api-verbs/list';
+import type { UserGroupChannelModel } from '@/schema/alert-manager/user-group-channel/model';
 import type { UserGroupListItemType } from '@/schema/identity/user-group/type';
 import { i18n } from '@/translations';
 
+import ErrorHandler from '@/common/composables/error/errorHandler';
 import { useQueryTags } from '@/common/composables/query-tags';
 
 import { USER_GROUP_MODAL_TYPE, USER_GROUP_SEARCH_HANDLERS } from '@/services/iam/constants/user-group-constant';
@@ -50,8 +55,9 @@ const state = reactive({
 const tableState = reactive({
     fields: computed<DataTableFieldType[]>(() => [
         { name: 'user_group_id', label: 'User Group ID' },
+        { name: 'name', label: 'User Group Name' },
         { name: 'description', label: 'Description' },
-        { name: 'notification', label: 'Notification' },
+        { name: 'notification_channel', label: 'Notification Channel' },
         { name: 'users', label: 'Users' },
         { name: 'created', label: 'Created' },
     ]),
@@ -63,14 +69,6 @@ const tableState = reactive({
         created: makeDistinctValueHandler('identity.UserGroup', 'created', 'datetime'),
         tags: makeDistinctValueHandler('identity.UserGroup', 'tags', 'object'),
     })),
-    items: computed(() => [
-        {
-            user_group_id: 'Group01', description: 'description', notification: 2, users: 100, created: '2024-01-01 11:22:30',
-        },
-        {
-            user_group_id: 'Group02', description: 'description', notification: 22, users: 30, created: '2024-11-21 02:22:30',
-        },
-    ]),
 });
 
 const editState = reactive({
@@ -80,14 +78,13 @@ const editState = reactive({
 
 const dropdownState = reactive({
     visible: false,
-    loading: false,
     selectedAction: '',
     menuItems: computed<MenuItem[]>(() => [
         {
             name: USER_GROUP_MODAL_TYPE.UPDATE, label: i18n.t('IAM.USER_GROUP.ACTION.UPDATE'), type: 'item', disabled: !editState.isEditable,
         },
         {
-            name: USER_GROUP_MODAL_TYPE.DELETE, label: i18n.t('IAM.USER_GROUP.ACTION.REMOVE'), type: 'item', disabled: !editState.isRemoveAble,
+            name: USER_GROUP_MODAL_TYPE.DELETE, label: i18n.t('IAM.USER_GROUP.ACTION.DELETE'), type: 'item', disabled: !editState.isRemoveAble,
         },
         {
             type: 'divider',
@@ -163,9 +160,41 @@ const fetchUserGroupList = async () => {
     }
 };
 
+// const notificationChannelList = ref<any>([]);
+//
+const fetchUserGroupChannelList = async (params: UserGroupChannelListParameters) => {
+    try {
+        const response = await SpaceConnector.clientV2.alertManager.userGroupChannel.list<UserGroupChannelListParameters, ListResponse<UserGroupChannelModel>>(params);
+        if (response.results) {
+            console.log(response.results);
+        }
+    } catch (e) {
+        ErrorHandler.handleError(e);
+    }
+};
+
+/* Watcher */
+// watch(() => [userGroupPageState.userGroups, notificationChannelList], ([nv_user_group, nv_notification_channel]) => {
+//     if (nv_user_group.length > 0) {
+//         nv_user_group.forEach((userGroup) => {
+//             if (nv_notification_channel.map((notificationChannel) => notificationChannel.user_group_id).includes(userGroup.user_group_id)) {
+//                 userGroup.notification_channels++;
+//             }
+//         });
+//     }
+// });
+
 /* Mounted */
 onMounted(async () => {
     await fetchUserGroupList();
+});
+
+watchEffect(async () => {
+    // const userGroupIdList = userGroupPageState.userGroups.map((userGroup) => userGroup.user_group_id);
+    await fetchUserGroupChannelList({
+    });
+    // userGroupIdList.forEach((userGroupId) => {
+    // });
 });
 </script>
 
@@ -193,9 +222,9 @@ onMounted(async () => {
                       #toolbox-left
             >
                 <p-select-dropdown
-                    :menu="dropdownState.menuItems"
-                    :loading="dropdownState.loading"
+                    :menu.sync="dropdownState.menuItems"
                     placeholder="Action"
+                    reset-selection-on-menu-close
                     @select="handleSelectDropdown"
                 />
             </template>
