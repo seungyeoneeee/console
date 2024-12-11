@@ -2920,20 +2920,20 @@
 		},
 		"USER_GROUP": {
 			"ACTION": {
-				"ADD_NEW_USER": "新規ユーザーを追加",
-				"REMOVE": "削除",
-				"UPDATE": "アップデート"
+				"ADD_NEW_USER": "",
+				"DELETE": "",
+				"UPDATE": "変更"
 			},
-			"CREATE": "生成",
+			"CREATE": "",
 			"MAIN": {
 				"NOTIFICATIONS_CHANNEL": {
-					"ADD": "追加",
-					"DELETE": "削除",
+					"ADD": "",
+					"DELETE": "",
 					"EDIT": "編集"
 				},
 				"USERS": {
-					"ADD_USER": "ユーザー追加",
-					"REMOVE": "削除"
+					"ADD_USER": "",
+					"REMOVE": ""
 				}
 			},
 			"MODAL": {
@@ -2944,16 +2944,16 @@
 					"USER": "ユーザー"
 				},
 				"CREATE_USER_GROUP": {
-					"CANCEL": "キャンセル",
-					"CONFIRM": "確認",
-					"DESCRIPTION": "説明",
-					"GROUP_NAME": "グループ名",
-					"NOTIFICATION_CHANNEL": "通知チャネル",
-					"PROTOCOL": "プロトコル",
-					"TITLE": "ユーザーグループの作成",
-					"TOKEN": "トークン",
-					"UPDATE": "アップデート",
-					"UPDATE_TITLE": "ユーザーグループの更新"
+					"CANCEL": "",
+					"CONFIRM": "",
+					"DESCRIPTION": "",
+					"GROUP_NAME": "",
+					"NOTIFICATION_CHANNEL": "",
+					"PROTOCOL": "",
+					"TITLE": "",
+					"TOKEN": "",
+					"UPDATE": "",
+					"UPDATE_TITLE": ""
 				},
 				"DELETE": {
 					"TITLE": ""
@@ -2964,10 +2964,10 @@
 			},
 			"TAB": {
 				"NOTIFICATION_CHANNEL": {
-					"ADD": "追加",
-					"DELETE": "消去",
-					"EDIT": "編集",
-					"TITLE": "通知チャネル"
+					"ADD": "",
+					"DELETE": "",
+					"EDIT": "",
+					"TITLE": ""
 				},
 				"USERS": {
 					"ADD_USER": "ユーザー追加",
@@ -2978,7 +2978,7 @@
 					"YESTERDAY": "昨日"
 				}
 			},
-			"TITLE": "ユーザーグループ"
+			"TITLE": ""
 		},
 		"WORKSPACES": {
 			"ACTION": "作業",

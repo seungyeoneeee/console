@@ -2921,7 +2921,7 @@
 		"USER_GROUP": {
 			"ACTION": {
 				"ADD_NEW_USER": "Add New User",
-				"REMOVE": "Remove",
+				"DELETE": "Delete",
 				"UPDATE": "Update"
 			},
 			"CREATE": "Create",

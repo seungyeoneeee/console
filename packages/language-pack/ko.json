@@ -2920,20 +2920,20 @@
 		},
 		"USER_GROUP": {
 			"ACTION": {
-				"ADD_NEW_USER": "새로운 사용자 추가",
-				"REMOVE": "삭제",
-				"UPDATE": "수정"
+				"ADD_NEW_USER": "",
+				"DELETE": "",
+				"UPDATE": "변경"
 			},
-			"CREATE": "생성",
+			"CREATE": "",
 			"MAIN": {
 				"NOTIFICATIONS_CHANNEL": {
-					"ADD": "추가",
-					"DELETE": "삭제",
-					"EDIT": "편집"
+					"ADD": "",
+					"DELETE": "",
+					"EDIT": "수정"
 				},
 				"USERS": {
-					"ADD_USER": "사용자 추가",
-					"REMOVE": "삭제"
+					"ADD_USER": "",
+					"REMOVE": "제거"
 				}
 			},
 			"MODAL": {
@@ -2944,16 +2944,16 @@
 					"USER": "사용자"
 				},
 				"CREATE_USER_GROUP": {
-					"CANCEL": "취소",
-					"CONFIRM": "확인",
-					"DESCRIPTION": "설명",
-					"GROUP_NAME": "그룹 이름",
-					"NOTIFICATION_CHANNEL": "알림 채널",
-					"PROTOCOL": "프로토콜",
-					"TITLE": "사용자 그룹 생성",
-					"TOKEN": "토큰",
-					"UPDATE": "수정",
-					"UPDATE_TITLE": "사용자 그룹 수정"
+					"CANCEL": "",
+					"CONFIRM": "",
+					"DESCRIPTION": "",
+					"GROUP_NAME": "",
+					"NOTIFICATION_CHANNEL": "",
+					"PROTOCOL": "",
+					"TITLE": "",
+					"TOKEN": "",
+					"UPDATE": "",
+					"UPDATE_TITLE": ""
 				},
 				"DELETE": {
 					"TITLE": ""
@@ -2964,10 +2964,10 @@
 			},
 			"TAB": {
 				"NOTIFICATION_CHANNEL": {
-					"ADD": "추가",
-					"DELETE": "삭제",
-					"EDIT": "편집",
-					"TITLE": "알림 채널"
+					"ADD": "",
+					"DELETE": "",
+					"EDIT": "",
+					"TITLE": ""
 				},
 				"USERS": {
 					"ADD_USER": "사용자 추가",
@@ -2978,7 +2978,7 @@
 					"YESTERDAY": "어제"
 				}
 			},
-			"TITLE": "사용자 그룹"
+			"TITLE": ""
 		},
 		"WORKSPACES": {
 			"ACTION": "작업",
