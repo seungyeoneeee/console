@@ -2723,6 +2723,7 @@
 		},
 		"USER": {
 			"ADD": "생성",
+			"ASSIGN_TO_USER_GROUP": "",
 			"FORM": {
 				"ADD_TAG": "태그 추가",
 				"ADD_WORKSPACE": "사용자가 접근할 수 있는 워크스페이스",

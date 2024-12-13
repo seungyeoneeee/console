@@ -2723,6 +2723,7 @@
 		},
 		"USER": {
 			"ADD": "作成",
+			"ASSIGN_TO_USER_GROUP": "",
 			"FORM": {
 				"ADD_TAG": "タグの追加",
 				"ADD_WORKSPACE": "ユーザーがアクセスできるワークスペース",

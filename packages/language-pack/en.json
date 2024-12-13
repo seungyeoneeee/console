@@ -2723,6 +2723,7 @@
 		},
 		"USER": {
 			"ADD": "Add",
+			"ASSIGN_TO_USER_GROUP": "Assign to User Group",
 			"FORM": {
 				"ADD_TAG": "Add Tag",
 				"ADD_WORKSPACE": "New users will have access to",
