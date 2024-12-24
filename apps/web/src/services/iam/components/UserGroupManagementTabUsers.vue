@@ -1,15 +1,24 @@
 <script lang="ts" setup>
 import {
-    computed, reactive, watch,
+    computed, onMounted, reactive, ref, watch, watchEffect,
 } from 'vue';
 
 import { makeDistinctValueHandler } from '@cloudforet/core-lib/component-util/query-search';
+import { getApiQueryWithToolboxOptions } from '@cloudforet/core-lib/component-util/toolbox';
+import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
+import { ApiQueryHelper } from '@cloudforet/core-lib/space-connector/helper';
 import {
     PHeadingLayout, PHeading, PButton, PToolboxTable,
 } from '@cloudforet/mirinae';
 import type { DataTableFieldType } from '@cloudforet/mirinae/types/data-display/tables/data-table/type';
 
+import type { ListResponse } from '@/schema/_common/api-verbs/list';
+import type { WorkspaceUserListParameters } from '@/schema/identity/workspace-user/api-verbs/list';
+import type { WorkspaceUserModel } from '@/schema/identity/workspace-user/model';
 import { i18n } from '@/translations';
+
+import ErrorHandler from '@/common/composables/error/errorHandler';
+import { useQueryTags } from '@/common/composables/query-tags';
 
 import { calculateTime } from '@/services/iam/composables/refined-table-data';
 import { USER_GROUP_MODAL_TYPE, USER_GROUP_USERS_SEARCH_HANDLERS } from '@/services/iam/constants/user-group-constant';
@@ -20,10 +29,22 @@ const userGroupPageStore = useUserGroupPageStore();
 const userGroupPageState = userGroupPageStore.state;
 const userGroupPageGetters = userGroupPageStore.getters;
 
+const userListApiQueryHelper = new ApiQueryHelper()
+    .setPageStart(userGroupPageState.users.pageStart)
+    .setPageLimit(userGroupPageState.users.pageLimit)
+    .setSort('name', true);
+let userListApiQuery = userListApiQueryHelper.data;
+
+const queryTagHelper = useQueryTags({ keyItemSets: USER_GROUP_USERS_SEARCH_HANDLERS });
+const { queryTags } = queryTagHelper;
+
+const userList = ref<any>();
+const filteredUserList = ref<any>();
+
 const state = reactive({
     userItems: computed<UserListItemType[]>(() => {
-        if (userGroupPageState.users.list) {
-            return userGroupPageState.users.list.map((user) => ({
+        if (userList.value) {
+            return userList.value.map((user) => ({
                 user_id: user.user_id,
                 name: user.name,
                 auth_type: user.auth_type,
@@ -43,19 +64,30 @@ const tableState = reactive({
         { name: 'auth_type', label: 'Auth Type' },
         { name: 'last_accessed_at', label: 'Last Activity' },
     ]),
-    // TODO: Need to modify.
     valueHandlerMap: computed(() => ({
-        user_id: makeDistinctValueHandler('identity.UserGroup', 'user_id', 'string'),
-        name: makeDistinctValueHandler('identity.UserGroup', 'name', 'string'),
-        auth_type: makeDistinctValueHandler('identity.UserGroup', 'auth_type', 'string'),
-        last_activity: makeDistinctValueHandler('identity.UserGroup', 'last_accessed_at', 'string'),
-        tags: makeDistinctValueHandler('identity.UserGroup', 'tags', 'string'),
+        user_id: makeDistinctValueHandler('identity.WorkspaceUser', 'user_id'),
+        name: makeDistinctValueHandler('identity.WorkspaceUser', 'name', 'string', [{ k: 'name', v: '', o: 'not' }]),
+        auth_type: makeDistinctValueHandler('identity.WorkspaceUser', 'auth_type'),
+        last_accessed_at: makeDistinctValueHandler('identity.WorkspaceUser', 'last_accessed_at', 'datetime'),
     })),
 });
 
 const isUserSelected = computed<boolean>(() => userGroupPageState.users.selectedIndices.length > 0);
 
 /* Component */
+const handleChange = async (options: any = {}) => {
+    userListApiQuery = getApiQueryWithToolboxOptions(userListApiQueryHelper, options) ?? userListApiQuery;
+    if (options.queryTags !== undefined) {
+        userGroupPageStore.$patch((_state) => {
+            _state.state.users.searchFilters = userListApiQueryHelper.filters;
+        });
+    }
+
+    if (options.pageStart !== undefined) userGroupPageState.users.pageStart = options.pageStart;
+    if (options.pageLimit !== undefined) userGroupPageState.users.pageLimit = options.pageLimit;
+    // await fetchUserList()
+};
+
 const handleSelect = async (index) => {
     userGroupPageState.users.selectedIndices = index;
 };
@@ -77,26 +109,48 @@ const handleRemoveUser = () => {
 };
 
 /* Watcher */
-watch(() => userGroupPageGetters.selectedUserGroups, async (nv_selectedUserGroups) => {
-    if (nv_selectedUserGroups.length === 1) {
-        const usersIdList: string[] | undefined = nv_selectedUserGroups[0].users;
-        await userGroupPageStore.listUsers({});
+// watchEffect(async () => {
+//     await fetchUserList({
+//         query: userListApiQuery,
+//     });
+// });
 
-        if (usersIdList && usersIdList.length > 0 && userGroupPageState.users.list && userGroupPageState.users.list.length > 0 && usersIdList && usersIdList.length > 0) {
-            userGroupPageState.users.list = userGroupPageState.users.list.filter((user) => {
-                if (user.user_id) return usersIdList.includes(user.user_id);
-                return false;
-            });
-        } else {
-            userGroupPageState.users.list = [];
-            userGroupPageState.users.totalCount = 0;
-        }
+watch(() => userGroupPageGetters.selectedUserGroups, async (nv_selectedUserGroups) => {
+    const usersIdList: string[] | undefined = nv_selectedUserGroups[0].users;
+    console.log(userList.value);
+    if (usersIdList && usersIdList.length > 0 && userList.value.length > 0) {
+        filteredUserList.value = userList.value.filter((user) => {
+            if (user.user_id) return usersIdList.includes(user.user_id);
+            return false;
+        });
+    } else {
+        userGroupPageState.users.list = [];
+        userGroupPageState.users.totalCount = 0;
     }
 }, { deep: true, immediate: true });
+
+watchEffect(() => {
+    console.log(userList.value);
+});
 
 watch(() => userGroupPageState.users, (nv_users) => {
     if (nv_users.list && nv_users.list.length) nv_users.totalCount = nv_users.list.length;
 }, { deep: true, immediate: true });
+
+/* API */
+const fetchUserList = async (params: WorkspaceUserListParameters) => {
+    try {
+        const { results } = await SpaceConnector.clientV2.identity.workspaceUser.list<WorkspaceUserListParameters, ListResponse<WorkspaceUserModel>>(params);
+        userList.value = results;
+    } catch (e) {
+        ErrorHandler.handleError(e, true);
+    }
+};
+
+/* Mounted */
+onMounted(async () => {
+    await fetchUserList({ query: userListApiQuery });
+});
 </script>
 
 <template>
@@ -132,14 +186,20 @@ watch(() => userGroupPageState.users, (nv_users) => {
         <p-toolbox-table search-type="query"
                          searchable
                          selectable
+                         sortable
                          multi-select
                          sort-desc
+                         sort-by="name"
+                         :refreshable="false"
                          :fields="tableState.fields"
                          :items="state.userItems"
                          :select-index="userGroupPageState.users.selectedIndices"
                          :key-item-sets="USER_GROUP_USERS_SEARCH_HANDLERS"
+                         :value-handler-map="tableState.valueHandlerMap"
+                         :query-tags="queryTags"
                          :total-count="state.userItemTotalCount"
                          @select="handleSelect"
+                         @change="handleChange"
         >
             <template #col-last_accessed_at-format="{value, item}">
                 <span v-if="calculateTime(value, item.timezone) === -1">
