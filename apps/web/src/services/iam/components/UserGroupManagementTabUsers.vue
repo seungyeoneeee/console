@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-    computed, reactive, watch,
+    computed, onMounted, reactive,
 } from 'vue';
 
 import { makeDistinctValueHandler } from '@cloudforet/core-lib/component-util/query-search';
@@ -43,6 +43,7 @@ const queryTagHelper = useQueryTags({ keyItemSets: USER_GROUP_USERS_SEARCH_HANDL
 const { queryTags } = queryTagHelper;
 
 const state = reactive({
+    loading: false,
     userItems: computed<UserListItemType[]>(() => {
         if (userGroupPageState.users.list) {
             return userGroupPageState.users.list.map((user) => ({
@@ -55,10 +56,21 @@ const state = reactive({
         }
         return [];
     }),
-    userItemTotalCount: computed<number>(() => userGroupPageState.users.totalCount),
+    totalCount: computed<number>(() => tableState.refinedItems.length),
 });
 
 const tableState = reactive({
+    refinedItems: computed(() => {
+        const userItems = state.userItems;
+        if (userGroupPageGetters.selectedUserGroups && userGroupPageGetters.selectedUserGroups.length > 0
+            && userGroupPageGetters.selectedUserGroups[0].users
+        ) {
+            const filteredItems = userItems.filter((user) => userGroupPageGetters.selectedUserGroups[0].users.includes(user.user_id));
+
+            return filteredItems;
+        }
+        return [];
+    }),
     fields: computed<DataTableFieldType[]>(() => [
         { name: 'user_id', label: 'User ID' },
         { name: 'name', label: 'Name' },
@@ -106,42 +118,21 @@ const handleChange = async (options: any = {}) => {
 
     if (options.pageStart !== undefined) userGroupPageState.users.pageStart = options.pageStart;
     if (options.pageLimit !== undefined) userGroupPageState.users.pageLimit = options.pageLimit;
-    await userGroupPageStore.listUsers({ query: userListApiQuery });
-    const usersIdList: string[] | undefined = userGroupPageGetters.selectedUserGroups[0].users;
-    if (usersIdList && usersIdList.length > 0 && userGroupPageState.users.list && userGroupPageState.users.list.length > 0 && usersIdList && usersIdList.length > 0) {
-        userGroupPageState.users.list = userGroupPageState.users.list.filter((user) => {
-            if (user.user_id) return usersIdList.includes(user.user_id);
-            return false;
-        });
-    } else {
-        userGroupPageState.users.list = [];
-        userGroupPageState.users.totalCount = 0;
+
+    try {
+        state.loading = true;
+        await userGroupPageStore.listUsers({ query: userListApiQuery });
+    } finally {
+        state.loading = false;
     }
 };
 
-/* Watcher */
-watch(() => userGroupPageGetters.selectedUserGroups, async (nv_selectedUserGroups) => {
-    if (nv_selectedUserGroups.length === 1) {
-        const usersIdList: string[] | undefined = nv_selectedUserGroups[0].users;
-        await userGroupPageStore.listUsers({
-            query: userListApiQuery,
-        });
 
-        if (usersIdList && usersIdList.length > 0 && userGroupPageState.users.list && userGroupPageState.users.list.length > 0 && usersIdList && usersIdList.length > 0) {
-            userGroupPageState.users.list = userGroupPageState.users.list.filter((user) => {
-                if (user.user_id) return usersIdList.includes(user.user_id);
-                return false;
-            });
-        } else {
-            userGroupPageState.users.list = [];
-            userGroupPageState.users.totalCount = 0;
-        }
-    }
-}, { deep: true, immediate: true });
-
-watch(() => userGroupPageState.users, (nv_users) => {
-    if (nv_users.list && nv_users.list.length) nv_users.totalCount = nv_users.list.length;
-}, { deep: true, immediate: true });
+onMounted(async () => {
+    await userGroupPageStore.listUsers({
+        query: userListApiQuery,
+    });
+});
 </script>
 
 <template>
@@ -151,7 +142,7 @@ watch(() => userGroupPageState.users, (nv_users) => {
                 <p-heading heading-type="sub"
                            use-selected-count
                            use-total-count
-                           :total-count="state.userItemTotalCount"
+                           :total-count="state.totalCount"
                            :title="`${i18n.t('IAM.USER_GROUP.TAB.USERS.TITLE')}`"
                 />
             </template>
@@ -180,16 +171,20 @@ watch(() => userGroupPageState.users, (nv_users) => {
                          searchable
                          selectable
                          multi-select
+                         sortable
                          sort-desc
+                         sort-by="name"
+                         :refreshable="false"
                          :fields="tableState.fields"
-                         :items="state.userItems"
+                         :items="tableState.refinedItems"
                          :select-index="userGroupPageState.users.selectedIndices"
                          :key-item-sets="USER_GROUP_USERS_SEARCH_HANDLERS"
                          :query-tags="queryTags"
                          :value-handler-map="tableState.valueHandlerMap"
-                         :total-count="state.userItemTotalCount"
+                         :loading="state.loading"
                          @select="handleSelect"
                          @change="handleChange"
+                         @refresh="handleChange()"
         >
             <template #col-last_accessed_at-format="{value, item}">
                 <span v-if="calculateTime(value, item.timezone) === -1">
