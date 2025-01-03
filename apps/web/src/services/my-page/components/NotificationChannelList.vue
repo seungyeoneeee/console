@@ -95,13 +95,7 @@ const apiQuery = new ApiQueryHelper();
 const listProtocol = async () => {
     try {
         state.loading = true;
-        if (props.projectId) {
-            apiQuery.setFilters([])
-                .setSort('protocol_type');
-        } else {
-            apiQuery.setFilters([{ k: 'protocol_type', o: '=', v: 'EXTERNAL' }]);
-        }
-        const res = await SpaceConnector.clientV2.notification.protocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({
+        const res = await SpaceConnector.clientV2.alertManager.notificationProtocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({
             query: apiQuery.data,
         });
         state.protocolResp = res.results ?? [];

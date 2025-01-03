@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-    computed, onMounted, reactive,
+    computed, reactive, watch, watchEffect,
 } from 'vue';
 
 import { cloneDeep, map } from 'lodash';
@@ -10,14 +10,13 @@ import {
     PStatus, PButtonModal, PDataTable,
 } from '@cloudforet/mirinae';
 
-import type { ListResponse } from '@/schema/_common/api-verbs/list';
-import type { ServiceListParameters } from '@/schema/alert-manager/service/api-verbs/list';
-import type { ServiceModel } from '@/schema/alert-manager/service/model';
 import type { RoleBindingDeleteParameters } from '@/schema/identity/role-binding/api-verbs/delete';
 import type { UserDeleteParameters } from '@/schema/identity/user/api-verbs/delete';
 import type { UserDisableParameters } from '@/schema/identity/user/api-verbs/disable';
 import type { UserEnableParameters } from '@/schema/identity/user/api-verbs/enable';
 import { i18n } from '@/translations';
+
+import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
@@ -27,6 +26,8 @@ import { useRoleFormatter, userStateFormatter } from '@/services/iam/composables
 import { USER_MODAL_TYPE } from '@/services/iam/constants/user-constant';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
 
+const allReferenceStore = useAllReferenceStore();
+const allReferenceGetters = allReferenceStore.getters;
 
 const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
@@ -53,13 +54,7 @@ const state = reactive({
     }),
     isRemoveOnlyWorkspace: computed(() => userPageState.modal.visible === 'removeOnlyWorkspace'),
     filteredServices: undefined,
-    filteredItems: [] as {
-      user_id?: string;
-      name?: string;
-      state?: string;
-      service?: string;
-      role_type?: string;
-    }[],
+    filteredItems: [] as any,
 });
 
 /* Component */
@@ -101,11 +96,39 @@ const checkModalConfirm = async () => {
         handleClose();
     }
 };
+watchEffect(() => {
+    const services: string[] = [];
+    let test;
+    Object.values(allReferenceGetters.service).forEach((value) => {
+        if (value.data.members.USER) {
+            test = userPageGetters.selectedUsers.map((user) => {
+                if (value.data.members.USER.includes(user.user_id)) {
+                    services.push(value.label);
+                } else {
+                    services.push();
+                }
+                return {
+                    ...user,
+                    services,
+                };
+            });
+        }
+    });
+    console.log(test);
+});
+
+watch(() => userPageGetters.selectedUsers, (nv_selected_users, ov_selected_users) => {
+    if (nv_selected_users !== ov_selected_users) {
+        state.filteredItems = [];
+    }
+}, { deep: true, immediate: true });
+
 const handleClose = () => {
     userPageStore.$patch((_state) => {
         _state.state.modal.visible = undefined;
         _state.state.modal = cloneDeep(_state.state.modal);
     });
+    state.filteredItems = [];
 };
 
 /* API */
@@ -154,37 +177,6 @@ const disableUser = async (userId?: string): Promise<boolean> => {
         return false;
     }
 };
-const fetchServiceList = async () => {
-    try {
-        const { results } = await SpaceConnector.clientV2.alertManager.service.list<ServiceListParameters, ListResponse<ServiceModel>>();
-        if (results && results.length > 0) {
-            const filteredResults = results.filter((result) => result.members.USER !== undefined && result.members.USER.length > 0);
-            if (filteredResults && filteredResults.length > 0) {
-                filteredResults.forEach((d) => {
-                    const filtered = userPageGetters.selectedUsers.filter((selectedUser) => d.members.USER.includes(selectedUser?.user_id));
-                    if (filtered.length > 0) {
-                        filtered.forEach((filteredUser) => {
-                            state.filteredItems.push({
-                                user_id: filteredUser.user_id,
-                                name: filteredUser.name,
-                                state: filteredUser.state,
-                                role_type: filteredUser.role_type,
-                                service: d.name,
-                            });
-                        });
-                    }
-                });
-            }
-        }
-    } catch (e) {
-        ErrorHandler.handleError(e, true);
-    }
-};
-
-/* Watcher */
-onMounted(async () => {
-    await fetchServiceList();
-});
 </script>
 
 <template>
@@ -213,6 +205,13 @@ onMounted(async () => {
                 </template>
                 <template #col-role_type-format="{value}">
                     <span> {{ useRoleFormatter(value, true).name }}</span>
+                </template>
+                <template #col-service-format="{value}">
+                    <span v-for="(v, i) in value.services"
+                          :key="i"
+                    >
+                        {{ v }}
+                    </span>
                 </template>
             </p-data-table>
         </template>

@@ -6,6 +6,6 @@ export interface ProtocolListParameters {
     protocol_id?: string;
     name?: string;
     state?: ProtocolState;
-    protocol_type?: string;
+    // protocol_type?: string;
     query?: Query;
 }

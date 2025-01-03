@@ -1,15 +1,17 @@
 <script lang="ts" setup>
-import { computed, onMounted, reactive } from 'vue';
+import {
+    computed, onMounted, reactive, watchEffect,
+} from 'vue';
 
 import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 import { PTableCheckModal } from '@cloudforet/mirinae';
 
-import type { ListResponse } from '@/schema/_common/api-verbs/list';
-import type { ServiceListParameters } from '@/schema/alert-manager/service/api-verbs/list';
-import type { ServiceModel } from '@/schema/alert-manager/service/model';
+
 import type { UserGroupDeleteUserGroupParameters } from '@/schema/identity/user-group/api-verbs/delete';
 import type { UserGroupModel } from '@/schema/identity/user-group/model';
 import { i18n } from '@/translations';
+
+import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
@@ -24,14 +26,18 @@ const userGroupPageStore = useUserGroupPageStore();
 const userGroupPageState = userGroupPageStore.state;
 const userGroupPageGetters = userGroupPageStore.getters;
 
+const allReferenceStore = useAllReferenceStore();
+const allReferenceGetters = allReferenceStore.getters;
+
 const storeState = reactive({
     selectedUserGroupIds: computed(() => userGroupPageGetters.selectedUserGroups.map((userGroup) => userGroup.user_group_id)),
     selectedUserGroupNames: computed(() => userGroupPageGetters.selectedUserGroups.map((userGroup) => userGroup.name)),
+    referenceServices: computed(() => allReferenceGetters.service),
 });
 
 const state = reactive({
     loading: false,
-    filteredServices: [] as ServiceModel[],
+    filteredServices: [] as Record<string, any>,
 });
 
 const tableState = reactive({
@@ -39,7 +45,7 @@ const tableState = reactive({
         { name: 'service', label: 'Service' },
         { name: 'description', label: 'Description' },
     ],
-    items: computed<{service: string; description: string}>(() => state.filteredServices.map((service) => ({
+    items: computed<{service: string; description: string}[]>(() => state.filteredServices.map((service) => ({
         service: service.name,
         description: service.description,
     }))),
@@ -80,16 +86,25 @@ const fetchDeleteUserGroup = async (params: UserGroupDeleteUserGroupParameters) 
 };
 
 const fetchServiceList = async () => {
-    try {
-        const { results } = await SpaceConnector.clientV2.alertManager.service.list<ServiceListParameters, ListResponse<ServiceModel>>();
-        if (results) {
-            const filteredResults = results.filter((result) => result.members.USER_GROUP !== undefined && result.members.USER_GROUP.length > 0);
-            state.filteredServices = filteredResults.filter((d) => d.members.USER_GROUP.includes(storeState.selectedUserGroupIds[0]));
-        }
-    } catch (e) {
-        ErrorHandler.handleError(e, true);
-    }
+    //     state.filteredServices = filteredResults.filter((d) => d.members.USER_GROUP.includes(storeState.selectedUserGroupIds[0]));
+    // const { results } = await SpaceConnector.clientV2.alertManager.service.list<ServiceListParameters, ListResponse<ServiceModel>>();
+
 };
+
+watchEffect(() => {
+    Object.values(storeState.referenceServices).forEach((service: any) => {
+        if (service.data && service.data.members !== undefined && service.data.members.USER_GROUP.length > 0) {
+            console.log(service.data.members.USER_GROUP, storeState.selectedUserGroupIds);
+        }
+        // if (service && Object.keys(service).includes('data') && service.data.members.USER_GROUP && service.data.members.USER_GROUP.includes(storeState.selectedUserGroupIds[0])) {
+        //     return {
+        //         service: service.name,
+        //         description: service.data.description,
+        //     };
+        // }
+        // return {};
+    });
+});
 
 /* Mounted */
 onMounted(async () => {

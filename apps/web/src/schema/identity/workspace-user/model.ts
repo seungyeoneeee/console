@@ -20,6 +20,7 @@ export interface WorkspaceUserModel {
     created_at: string;
     last_accessed_at: string;
     user_group: UserGroupPerUserModel[];
+    service?: Record<string, any>
 }
 
 export interface SummaryWorkspaceUserModel {

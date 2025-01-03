@@ -54,11 +54,9 @@ export const useProtocolReferenceStore = defineStore('reference-protocol', () =>
 
         const referenceMap: ProtocolReferenceMap = {};
         try {
-            const response = await SpaceConnector.clientV2.notification.protocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({
-                query: {
-                    only: ['protocol_id', 'name'],
-                },
-            }, { timeout: 3000 });
+            const response = await SpaceConnector.clientV2.alertManager.notificationProtocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({}, {
+                timeout: 3000,
+            });
 
             response.results?.forEach((protocolInfo): void => {
                 referenceMap[protocolInfo.protocol_id] = {
