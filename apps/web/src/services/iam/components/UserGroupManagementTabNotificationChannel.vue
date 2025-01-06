@@ -48,6 +48,7 @@ const userGroupPageState = userGroupPageStore.state;
 const userGroupPageGetters = userGroupPageStore.getters;
 
 const notificationChannelCreateFormStore = useNotificationChannelCreateFormStore();
+const notificationChannelCreateFormState = notificationChannelCreateFormStore.state;
 
 const allReferenceStore = useAllReferenceStore();
 const allReferenceGetters = allReferenceStore.getters;
@@ -170,13 +171,14 @@ const handleUpdateModal = async (modalType: string) => {
                 });
 
                 if (protocolResult && storeState.plugins[protocolResult.plugin_info.plugin_id] !== undefined) {
+                    notificationChannelCreateFormState.channelName = name;
                     state.protocolIcon = storeState.plugins[protocolResult.plugin_info.plugin_id]?.icon || '';
 
                     notificationChannelCreateFormStore.$patch((_state) => {
+                        // _state.state.channelName = name;
                         _state.state.selectedProtocol.protocol_id = protocol_id;
                         _state.state.selectedProtocol.icon = storeState.plugins[protocolResult.plugin_info.plugin_id]?.icon || '';
                         _state.state.selectedProtocol.name = protocolResult.name;
-                        _state.state.channelName = name;
                         _state.state.scheduleInfo = {
                             SCHEDULE_TYPE: schedule.SCHEDULE_TYPE,
                             TIMEZONE: schedule.TIMEZONE,
@@ -235,6 +237,8 @@ watch([() => tableState.items, () => userGroupPageGetters.selectedUserGroupChann
     if (nv_items.length > 0 && nv_selected_item.length === 1) {
         isDeleteAble.value = true;
     } else if (nv_items.length === 0) {
+        isDeleteAble.value = false;
+    } else if (nv_items.length > 0 && nv_selected_item.length === 0) {
         isDeleteAble.value = false;
     }
 }, { deep: true, immediate: true });
