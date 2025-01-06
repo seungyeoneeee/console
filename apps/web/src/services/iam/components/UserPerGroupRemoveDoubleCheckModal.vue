@@ -40,6 +40,7 @@ const handleConfirm = async () => {
         showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.REMOVE_USER.SHOW_SUCCESS_MESSAGE'));
     } finally {
         state.loading = false;
+        userGroupPageState.users.selectedIndices = [];
         handleCancel();
     }
 };
