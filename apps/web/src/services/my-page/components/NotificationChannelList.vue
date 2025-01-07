@@ -15,12 +15,13 @@ import type { JsonSchema } from '@cloudforet/mirinae/types/controls/forms/json-s
 
 import type { ListResponse } from '@/schema/_common/api-verbs/list';
 import type { Tags } from '@/schema/_common/model';
+import type { NotificationProtocolListParameters } from '@/schema/alert-manager/notification-protocol/api-verbs/list';
+import type { NotificationProtocolModel } from '@/schema/alert-manager/notification-protocol/model';
+import type { UserChannelListParameters } from '@/schema/alert-manager/user-channel/api-verbs/list';
+import type { UserChannelModel } from '@/schema/alert-manager/user-channel/model';
 import type { ProjectChannelListParameters } from '@/schema/notification/project-channel/api-verbs/list';
 import type { ProjectChannelModel } from '@/schema/notification/project-channel/model';
-import type { ProtocolListParameters } from '@/schema/notification/protocol/api-verbs/list';
 import type { ProtocolModel } from '@/schema/notification/protocol/model';
-import type { UserChannelListParameters } from '@/schema/notification/user-channel/api-verbs/list';
-import type { UserChannelModel } from '@/schema/notification/user-channel/model';
 import { i18n } from '@/translations';
 
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
@@ -95,16 +96,22 @@ const apiQuery = new ApiQueryHelper();
 const listProtocol = async () => {
     try {
         state.loading = true;
-        if (props.projectId) {
-            apiQuery.setFilters([])
-                .setSort('protocol_type');
-        } else {
-            apiQuery.setFilters([{ k: 'protocol_type', o: '=', v: 'EXTERNAL' }]);
-        }
-        const res = await SpaceConnector.clientV2.notification.protocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({
+        const res = await SpaceConnector.clientV2.alertManager.notificationProtocol.list<NotificationProtocolListParameters, ListResponse<NotificationProtocolModel>>({
             query: apiQuery.data,
         });
         state.protocolResp = res.results ?? [];
+        state.channelList = res.results?.map((d) => {
+            console.log({
+                ...d,
+                protocol_name: injectProtocolName(d),
+                schema: injectProtocolSchema(d),
+            });
+            return {
+                ...d,
+                protocol_name: injectProtocolName(d),
+                schema: injectProtocolSchema(d),
+            };
+        }) ?? [];
     } catch (e) {
         ErrorHandler.handleError(e);
         state.protocolResp = [];
@@ -129,7 +136,7 @@ const listUserChannel = async () => {
     try {
         state.channelLoading = true;
         channelApiQuery.setFilters([{ k: 'user_id', v: state.userId, o: '=' }]);
-        const res = await SpaceConnector.clientV2.notification.userChannel.list<UserChannelListParameters, ListResponse<UserChannelModel>>({
+        const res = await SpaceConnector.clientV2.alertManager.userChannel.list<UserChannelListParameters, ListResponse<UserChannelModel>>({
             query: channelApiQuery.data,
         });
         state.channelList = res.results?.map((d) => ({

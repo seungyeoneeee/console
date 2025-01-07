@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-    computed, onMounted, reactive, watch,
+    computed, onMounted, reactive, watch, watchEffect,
 } from 'vue';
 
 import { range, zipObject } from 'lodash';
@@ -135,6 +135,10 @@ onMounted(() => {
         initScheduleForm();
     }
 });
+
+watchEffect(() => {
+    console.log(state.start, state.end);
+});
 </script>
 
 <template>
@@ -175,14 +179,12 @@ onMounted(() => {
             </div>
             <div class="flex items-center gap-2">
                 <p-select-dropdown :menu="state.startHourTimeList"
-                                   :selected="state.start"
-                                   placeholder="00:00"
+                                   :selected.sync="state.start"
                                    @select="handleSelectDropdown('start', $event)"
                 />
                 <span>{{ $t('COMMON.SCHEDULE_SETTING.TO') }}</span>
                 <p-select-dropdown :menu="state.endHourTimeList"
-                                   :selected="state.end"
-                                   placeholder="24:00"
+                                   :selected.sync="state.end"
                                    @select="handleSelectDropdown('end', $event)"
                 />
             </div>
