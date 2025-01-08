@@ -7,12 +7,9 @@ import {
 } from '@cloudforet/mirinae';
 
 
-import type { ProjectChannelDeleteParameters } from '@/schema/notification/project-channel/api-verbs/delete';
-import type { ProjectChannelDisableParameters } from '@/schema/notification/project-channel/api-verbs/disable';
-import type { ProjectChannelEnableParameters } from '@/schema/notification/project-channel/api-verbs/enable';
-import type { UserChannelDeleteParameters } from '@/schema/notification/user-channel/api-verbs/delete';
-import type { UserChannelDisableParameters } from '@/schema/notification/user-channel/api-verbs/disable';
-import type { UserChannelEnableParameters } from '@/schema/notification/user-channel/api-verbs/enable';
+import type { UserChannelDeleteParameters } from '@/schema/alert-manager/user-channel/api-verbs/delete';
+import type { UserChannelDisableParameters } from '@/schema/alert-manager/user-channel/api-verbs/disable';
+import type { UserChannelEnableParameters } from '@/schema/alert-manager/user-channel/api-verbs/enable';
 import { i18n } from '@/translations';
 
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
@@ -39,10 +36,8 @@ const STATE_TYPE = {
 
 const props = withDefaults(defineProps<{
     channelData: NotiChannelItem;
-    projectId?: string;
     manageDisabled?: boolean;
 }>(), {
-    projectId: undefined,
     manageDisabled: false,
 });
 
@@ -54,7 +49,6 @@ type EditTarget = 'name' | 'data' | 'notification_level' | 'schedule' | 'topic';
 const state = reactive({
     isActivated: props.channelData.state === STATE_TYPE.ENABLED,
     userChannelId: props.channelData.user_channel_id,
-    projectChannelId: props.channelData.project_channel_id,
     editTarget: undefined as EditTarget | undefined,
 });
 const checkDeleteState = reactive({
@@ -62,24 +56,11 @@ const checkDeleteState = reactive({
     headerTitle: i18n.t('MY_PAGE.NOTIFICATION.CHANNEL_DELETE_MODAL_TITLE'),
 });
 
-const enableProjectChannel = async () => {
-    try {
-        if (!state.projectChannelId) throw new Error('Project channel id is not defined');
-        await SpaceConnector.clientV2.notification.projectChannel.enable<ProjectChannelEnableParameters>({
-            project_channel_id: state.projectChannelId,
-        });
-        state.isActivated = true;
-        showSuccessMessage(i18n.t('MY_PAGE.NOTIFICATION.ALT_S_ENABLE_PROJECT_CHANNEL'), '');
-    } catch (e) {
-        ErrorHandler.handleRequestError(e, i18n.t('MY_PAGE.NOTIFICATION.ALT_E_ENABLE_PROJECT_CHANNEL'));
-    }
-};
-
 const enableUserChannel = async () => {
     try {
         if (!state.userChannelId) throw new Error('User channel id is not defined');
         await SpaceConnector.clientV2.notification.userChannel.enable<UserChannelEnableParameters>({
-            user_channel_id: state.userChannelId,
+            channel_id: state.userChannelId,
         });
         state.isActivated = true;
         showSuccessMessage(i18n.t('MY_PAGE.NOTIFICATION.ALT_S_ENABLE_USER_CHANNEL'), '');
@@ -88,30 +69,11 @@ const enableUserChannel = async () => {
     }
 };
 
-const enableChannel = async () => {
-    if (props.projectId) await enableProjectChannel();
-    else await enableUserChannel();
-};
-
-const disableProjectChannel = async () => {
-    try {
-        if (!state.projectChannelId) throw new Error('Project channel id is not defined');
-        await SpaceConnector.clientV2.notification.projectChannel.disable<ProjectChannelDisableParameters>({
-            project_channel_id: state.projectChannelId,
-        });
-        state.isActivated = false;
-        showSuccessMessage(i18n.t('MY_PAGE.NOTIFICATION.ALT_S_DISABLE_PROJECT_CHANNEL'), '');
-    } catch (e) {
-        ErrorHandler.handleRequestError(e, i18n.t('MY_PAGE.NOTIFICATION.ALT_E_DISABLE_PROJECT_CHANNEL'));
-        throw e;
-    }
-};
-
 const disableUserChannel = async () => {
     try {
         if (!state.userChannelId) throw new Error('User channel id is not defined');
-        await SpaceConnector.clientV2.notification.userChannel.disable<UserChannelDisableParameters>({
-            user_channel_id: state.userChannelId,
+        await SpaceConnector.clientV2.alertManager.userChannel.disable<UserChannelDisableParameters>({
+            channel_id: state.userChannelId,
         });
         state.isActivated = false;
         showSuccessMessage(i18n.t('MY_PAGE.NOTIFICATION.ALT_S_DISABLE_USER_CHANNEL'), '');
@@ -121,16 +83,11 @@ const disableUserChannel = async () => {
     }
 };
 
-const disableChannel = async () => {
-    if (props.projectId) await disableProjectChannel();
-    else await disableUserChannel();
-};
-
 const onToggleChange = async (value: boolean) => {
     try {
         state.isActivated = value;
-        if (!value) await disableChannel();
-        else await enableChannel();
+        if (!value) await disableUserChannel();
+        else await enableUserChannel();
     } catch (e) {
         await nextTick();
         state.isActivated = !value;
@@ -145,26 +102,11 @@ const onClickDelete = () => {
     checkDeleteState.visible = true;
 };
 
-const deleteProjectChannel = async () => {
-    try {
-        if (!state.projectChannelId) throw new Error('Project channel id is not defined');
-        await SpaceConnector.clientV2.notification.projectChannel.delete<ProjectChannelDeleteParameters>({
-            project_channel_id: state.projectChannelId,
-        });
-        showSuccessMessage(i18n.t('MY_PAGE.NOTIFICATION.ALT_S_DELETE_PROJECT_CHANNEL'), '');
-    } catch (e) {
-        ErrorHandler.handleRequestError(e, i18n.t('MY_PAGE.NOTIFICATION.ALT_E_DELETE_PROJECT_CHANNEL'));
-    } finally {
-        checkDeleteState.visible = false;
-        emit('confirm');
-    }
-};
-
 const deleteUserChannel = async () => {
     try {
         if (!state.userChannelId) throw new Error('User channel id is not defined');
-        await SpaceConnector.clientV2.notification.userChannel.delete<UserChannelDeleteParameters>({
-            user_channel_id: state.userChannelId,
+        await SpaceConnector.clientV2.alertManager.userChannel.delete<UserChannelDeleteParameters>({
+            channel_id: state.userChannelId,
         });
         showSuccessMessage(i18n.t('MY_PAGE.NOTIFICATION.ALT_S_DELETE_USER_CHANNEL'), '');
     } catch (e) {
@@ -176,8 +118,7 @@ const deleteUserChannel = async () => {
 };
 
 const deleteChannelConfirm = async () => {
-    if (props.projectId) await deleteProjectChannel();
-    else await deleteUserChannel();
+    await deleteUserChannel();
 };
 
 const onEdit = (value?: EditTarget) => {

@@ -13,9 +13,11 @@ import type { MenuItem } from '@cloudforet/mirinae/types/controls/context-menu/t
 import type { JsonSchema } from '@cloudforet/mirinae/types/controls/forms/json-schema-form/type';
 
 import type { ListResponse } from '@/schema/_common/api-verbs/list';
+import type { NotificationProtocolListParameters } from '@/schema/alert-manager/notification-protocol/api-verbs/list';
+import type { NotificationProtocolModel } from '@/schema/alert-manager/notification-protocol/model';
 import type { NotificationLevel } from '@/schema/notification/notification/type';
-import type { ProtocolListParameters } from '@/schema/notification/protocol/api-verbs/list';
-import type { ProtocolModel } from '@/schema/notification/protocol/model';
+// import type { ProtocolListParameters } from '@/schema/notification/protocol/api-verbs/list';
+// import type { ProtocolModel } from '@/schema/notification/protocol/model';
 import { i18n } from '@/translations';
 
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
@@ -31,18 +33,16 @@ import type { NotificationAddFormDataPayload } from '@/services/my-page/types/no
 const SPACEONE_USER_CHANNEL_TYPE = 'SpaceONE User' as const;
 const allReferenceStore = useAllReferenceStore();
 const userStore = useUserStore();
-const PROTOCOL_TYPE = {
-    INTERNAL: 'INTERNAL',
-    EXTERNAL: 'EXTERNAL',
-} as const;
+// const PROTOCOL_TYPE = {
+//     INTERNAL: 'INTERNAL',
+//     EXTERNAL: 'EXTERNAL',
+// } as const;
 
 const props = withDefaults(defineProps<{
     projectId: string;
-    protocolType: string;
     protocolId: string;
 }>(), {
     projectId: '',
-    protocolType: '',
     protocolId: '',
 });
 const emit = defineEmits<{(event: 'change', payload: NotificationAddFormDataPayload): void;
@@ -92,7 +92,7 @@ const apiQuery = new ApiQueryHelper();
 const getSchema = async (): Promise<JsonSchema|null> => {
     try {
         apiQuery.setFilters([{ k: 'protocol_id', v: props.protocolId, o: '=' }]);
-        const res = await SpaceConnector.clientV2.notification.protocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({
+        const res = await SpaceConnector.clientV2.alertManager.notificationProtocol.list<NotificationProtocolListParameters, ListResponse<NotificationProtocolModel>>({
             query: apiQuery.data,
         });
         return res.results?.[0]?.plugin_info.metadata.data.schema ?? {};
@@ -105,11 +105,10 @@ const getSchema = async (): Promise<JsonSchema|null> => {
 const emitChange = () => {
     emit('change', {
         channelName: state.channelName,
-        data: (props.protocolType === PROTOCOL_TYPE.EXTERNAL)
-            ? state.schemaForm
-            : { users: state.selectedMember },
+        data: { users: state.selectedMember },
         level: state.notificationLevel,
         isValid: state.isDataValid,
+        schemaData: state.schemaForm,
     });
 };
 
@@ -147,10 +146,9 @@ const initStates = () => {
     state.schema = null;
 };
 
-watch([() => props.protocolId, () => props.protocolType], async ([protocolId, protocolType]) => {
+watch(() => props.protocolId, async (protocolId) => {
     if (!protocolId) return;
     initStates();
-    if (protocolType !== PROTOCOL_TYPE.EXTERNAL) return;
     state.schema = await getSchema();
 }, { immediate: true });
 </script>
@@ -184,7 +182,7 @@ watch([() => props.protocolId, () => props.protocolType], async ([protocolId, pr
                             class="schema-form"
                             @change="handleSchemaFormChange"
         />
-        <div v-if="props.projectId && state.protocol?.name === SPACEONE_USER_CHANNEL_TYPE && props.protocolType === PROTOCOL_TYPE.INTERNAL">
+        <div v-if="props.projectId && state.protocol?.name === SPACEONE_USER_CHANNEL_TYPE">
             <p-field-group :label="$t('IAM.USER.FORM.MEMBER')"
                            required
             >

@@ -15,18 +15,22 @@ import type { JsonSchema } from '@cloudforet/mirinae/types/controls/forms/json-s
 
 import type { ListResponse } from '@/schema/_common/api-verbs/list';
 import type { Tags } from '@/schema/_common/model';
-import type { ProjectChannelListParameters } from '@/schema/notification/project-channel/api-verbs/list';
+import type { EscalationPolicyListParameters } from '@/schema/alert-manager/escalation-policy/api-verbs/list';
+import type { EscalationPolicyModel } from '@/schema/alert-manager/escalation-policy/model';
+import type { NotificationProtocolListParameters } from '@/schema/alert-manager/notification-protocol/api-verbs/list';
+import type { NotificationProtocolModel } from '@/schema/alert-manager/notification-protocol/model';
+import type { UserChannelListParameters } from '@/schema/alert-manager/user-channel/api-verbs/list';
+import type { UserChannelModel } from '@/schema/alert-manager/user-channel/model';
 import type { ProjectChannelModel } from '@/schema/notification/project-channel/model';
-import type { ProtocolListParameters } from '@/schema/notification/protocol/api-verbs/list';
 import type { ProtocolModel } from '@/schema/notification/protocol/model';
-import type { UserChannelListParameters } from '@/schema/notification/user-channel/api-verbs/list';
-import type { UserChannelModel } from '@/schema/notification/user-channel/model';
 import { i18n } from '@/translations';
 
+// import { useDomainStore } from '@/store/domain/domain-store';
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 import type { PluginReferenceMap } from '@/store/reference/plugin-reference-store';
 import { useUserStore } from '@/store/user/user-store';
 
+// import config from '@/lib/config';
 import { assetUrlConverter } from '@/lib/helper/asset-helper';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
@@ -44,8 +48,13 @@ interface EnrichedProtocolItem extends ProtocolModel {
     icon: any;
     id: string;
 }
+
+
 const allReferenceStore = useAllReferenceStore();
 const userStore = useUserStore();
+// const domainStore = useDomainStore();
+//
+// const isAlertManagerVersionV2 = (config.get('ADVANCED_SERVICE'));
 
 const props = withDefaults(defineProps<{
     projectId?: string;
@@ -74,16 +83,14 @@ const state = reactive({
 const createProtocolItem = (d) => {
     const query = {
         protocolLabel: d.name,
-        protocolType: d.protocol_type,
     };
     return {
-        label: d.protocol_type === 'INTERNAL' ? i18n.t('IAM.USER.NOTIFICATION.ASSOCIATED_MEMBER') : i18n.t('IDENTITY.USER.NOTIFICATION.FORM.ADD_CHANNEL', { type: d.name }),
+        label: i18n.t('IDENTITY.USER.NOTIFICATION.FORM.ADD_CHANNEL', { type: d.name }),
         link: {
             name: props.projectId ? PROJECT_ROUTE_V1.DETAIL.TAB.NOTIFICATIONS.ADD._NAME : MY_PAGE_ROUTE.NOTIFICATION.ADD._NAME,
             params: { protocolId: d.protocol_id },
             query,
         },
-        protocolType: d.protocol_type,
         tags: d.tags,
         plugin_info: d.plugin_info,
         icon: state.plugins[d.plugin_info?.plugin_id]?.icon || '',
@@ -95,13 +102,7 @@ const apiQuery = new ApiQueryHelper();
 const listProtocol = async () => {
     try {
         state.loading = true;
-        if (props.projectId) {
-            apiQuery.setFilters([])
-                .setSort('protocol_type');
-        } else {
-            apiQuery.setFilters([{ k: 'protocol_type', o: '=', v: 'EXTERNAL' }]);
-        }
-        const res = await SpaceConnector.clientV2.notification.protocol.list<ProtocolListParameters, ListResponse<ProtocolModel>>({
+        const res = await SpaceConnector.clientV2.alertManager.notificationProtocol.list<NotificationProtocolListParameters, ListResponse<NotificationProtocolModel>>({
             query: apiQuery.data,
         });
         state.protocolResp = res.results ?? [];
@@ -113,7 +114,7 @@ const listProtocol = async () => {
     }
 };
 
-const injectProtocolName = (channel: UserChannelModel|ProjectChannelModel): string => {
+const injectProtocolName = (channel: UserChannelModel): string => {
     const protocolInfoOfChannel = state.protocolResp.find((i) => i.protocol_id === channel.protocol_id);
     if (protocolInfoOfChannel) return protocolInfoOfChannel.name;
     return channel.name;
@@ -129,12 +130,12 @@ const listUserChannel = async () => {
     try {
         state.channelLoading = true;
         channelApiQuery.setFilters([{ k: 'user_id', v: state.userId, o: '=' }]);
-        const res = await SpaceConnector.clientV2.notification.userChannel.list<UserChannelListParameters, ListResponse<UserChannelModel>>({
+        const res = await SpaceConnector.clientV2.alertManager.userChannel.list<UserChannelListParameters, ListResponse<UserChannelModel>>({
             query: channelApiQuery.data,
         });
         state.channelList = res.results?.map((d) => ({
             ...d,
-            protocol_name: injectProtocolName(d),
+            protocol_name: injectProtocolName(d), // TODO:
             schema: injectProtocolSchema(d),
         })) ?? [];
     } catch (e) {
@@ -143,45 +144,25 @@ const listUserChannel = async () => {
     } finally {
         state.channelLoading = false;
     }
-};
-
-const listProjectChannel = async () => {
-    try {
-        state.channelLoading = true;
-        channelApiQuery.setFilters([{ k: 'project_id', v: props.projectId, o: '=' }]).setSort('notification_level', false);
-        const res = await SpaceConnector.clientV2.notification.projectChannel.list<ProjectChannelListParameters, ListResponse<ProjectChannelModel>>({
-            query: channelApiQuery.data,
-        });
-        state.channelList = res.results?.map((d) => ({
-            ...d,
-            protocol_name: injectProtocolName(d),
-            schema: injectProtocolSchema(d),
-        })) ?? [];
-    } catch (e) {
-        ErrorHandler.handleError(e);
-        state.channelList = [];
-    } finally {
-        state.channelLoading = false;
-    }
-};
-
-const listChannel = async () => {
-    if (props.projectId) await listProjectChannel();
-    else await listUserChannel();
 };
 
 const onChangeChannelItem = async () => {
-    await listChannel();
+    await listUserChannel();
 };
 
 (async () => {
     await listProtocol();
-    await listChannel();
+    await listUserChannel();
 })();
 
 onActivated(async () => {
     await listProtocol();
-    await listChannel();
+    await listUserChannel();
+    console.log(await SpaceConnector.clientV2.alertManager.escalationPolicy.list<EscalationPolicyListParameters, ListResponse<EscalationPolicyModel>>({
+        query: {
+            only: ['escalation_policy_id', 'name', 'service_id'],
+        },
+    }));
 });
 </script>
 
@@ -267,6 +248,7 @@ onActivated(async () => {
                         :key="`${item.name}-${item.created_at}`"
                     >
                         <li class="mb-4">
+                            <!--                          TODO: update about userChannel-->
                             <notification-channel-item :channel-data="item"
                                                        :project-id="props.projectId"
                                                        :manage-disabled="props.manageDisabled"

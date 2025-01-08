@@ -8,28 +8,27 @@ import {
 } from '@cloudforet/mirinae';
 
 
+import type { UserChannelCreateParameters } from '@/schema/alert-manager/user-channel/api-verbs/create';
 import type { NotificationLevel } from '@/schema/notification/notification/type';
 import type { ProjectChannelCreateParameters } from '@/schema/notification/project-channel/api-verbs/create';
 import type { ChannelSchedule } from '@/schema/notification/type';
-import type { UserChannelCreateParameters } from '@/schema/notification/user-channel/api-verbs/create';
 import { i18n } from '@/translations';
 
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
+import type { ScheduleSettingFormType } from '@/common/components/schedule-setting-form/schedule-setting-form';
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
 import NotificationAddFormData from '@/services/my-page/components/NotificationAddFormData.vue';
 import NotificationAddSchedule from '@/services/my-page/components/NotificationAddSchedule.vue';
 import NotificationAddTopic from '@/services/my-page/components/NotificationAddTopic.vue';
-import type { NotificationAddFormDataPayload, NotificationAddFormTopicPayload, NotificationAddFormSchedulePayload } from '@/services/my-page/types/notification-add-form-type';
+import type { NotificationAddFormDataPayload, NotificationAddFormTopicPayload } from '@/services/my-page/types/notification-add-form-type';
 
 const props = withDefaults(defineProps<{
     projectId?: string;
-    protocolType: string;
     protocolId: string;
 }>(), {
     projectId: '',
-    protocolType: '',
     protocolId: '',
 });
 
@@ -44,6 +43,8 @@ const state = reactive({
     topicMode: false,
     topicList: [] as string[],
     isTopicValid: true,
+    schemaForm: { },
+    scheduleSettingData: {} as ScheduleSettingFormType,
     //
     schedule: undefined as ChannelSchedule|undefined,
     isScheduled: false,
@@ -52,14 +53,12 @@ const state = reactive({
 
 const createUserChannel = async () => {
     try {
-        await SpaceConnector.clientV2.notification.userChannel.create<UserChannelCreateParameters>({
+        await SpaceConnector.clientV2.alertManager.userChannel.create<UserChannelCreateParameters>({
             protocol_id: props.protocolId,
             name: state.channelName,
-            data: state.data,
-            is_subscribe: state.topicMode,
-            subscriptions: state.topicList,
-            schedule: state.schedule,
-            is_scheduled: state.isScheduled,
+            data: state.schemaForm,
+            schedule: state.scheduleSettingData,
+            tags: {},
         });
         showSuccessMessage(i18n.t('IDENTITY.USER.NOTIFICATION.FORM.ALT_S_CREATE_USER_CHANNEL'), '');
     } catch (e) {
@@ -101,12 +100,11 @@ const onChangeData = (value: NotificationAddFormDataPayload) => {
     state.data = value.data;
     state.notificationLevel = value.level;
     state.isDataValid = value.isValid;
+    state.schemaForm = value.schemaData;
 };
 
-const onChangeSchedule = ({ schedule, is_scheduled, isScheduleValid }: NotificationAddFormSchedulePayload) => {
-    state.schedule = schedule;
-    state.isScheduled = is_scheduled;
-    state.isScheduleValid = isScheduleValid;
+const onChangeSchedule = (value: ScheduleSettingFormType) => {
+    state.scheduleSettingData = value;
 };
 
 const onChangeTopic = ({ topicMode, selectedTopic, isTopicValid }: NotificationAddFormTopicPayload) => {
@@ -124,7 +122,6 @@ const onChangeTopic = ({ topicMode, selectedTopic, isTopicValid }: NotificationA
                     {{ $t('IDENTITY.USER.NOTIFICATION.FORM.BASE_INFO') }}
                 </h3>
                 <notification-add-form-data :project-id="props.projectId"
-                                            :protocol-type="props.protocolType"
                                             :protocol-id="props.protocolId"
                                             @change="onChangeData"
                 />

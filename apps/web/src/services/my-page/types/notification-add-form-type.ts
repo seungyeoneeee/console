@@ -6,6 +6,7 @@ export interface NotificationAddFormDataPayload {
     data: Record<string, any>;
     level: NotificationLevel;
     isValid: boolean;
+    schemaData: Record<string, any>
 }
 
 export interface NotificationAddFormSchedulePayload {

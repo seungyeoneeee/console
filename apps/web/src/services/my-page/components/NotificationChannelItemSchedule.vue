@@ -10,19 +10,20 @@ import {
 
 
 import type { ProjectChannelSetScheduleParameters } from '@/schema/notification/project-channel/api-verbs/set-schedule';
-import type { UserChannelSetScheduleParameters } from '@/schema/notification/user-channel/api-verbs/set-schedule';
+// import type { UserChannelSetScheduleParameters } from '@/schema/notification/user-channel/api-verbs/set-schedule';
 import { i18n } from '@/translations';
 
 import { useUserStore } from '@/store/user/user-store';
 
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
+import type { ScheduleSettingFormType } from '@/common/components/schedule-setting-form/schedule-setting-form';
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
 import { utcToTimezoneFormatter } from '@/services/iam/helpers/user-notification-timezone-helper';
 import NotificationAddSchedule from '@/services/my-page/components/NotificationAddSchedule.vue';
 import { useNotificationItem } from '@/services/my-page/composables/notification-item';
-import type { NotificationAddFormSchedulePayload } from '@/services/my-page/types/notification-add-form-type';
+// import type { NotificationAddFormSchedulePayload } from '@/services/my-page/types/notification-add-form-type';
 import type { NotiChannelItem } from '@/services/my-page/types/notification-channel-item-type';
 
 const props = withDefaults(defineProps<{
@@ -44,6 +45,7 @@ const state = reactive({
     scheduleModeForEdit: props.channelData.is_scheduled,
     scheduleForEdit: props.channelData.schedule,
     isScheduleValid: false,
+    scheduleSettingTypeData: {} as ScheduleSettingFormType,
     displayStartHour: computed(() => utcToTimezoneFormatter((props.channelData.schedule?.start_hour || 0), timezoneForFormatter)),
     displayEndHour: computed(() => utcToTimezoneFormatter((props.channelData.schedule?.end_hour || 0), timezoneForFormatter)),
 });
@@ -57,20 +59,22 @@ const {
     isEditMode: false,
 }, emit);
 
-const onChangeSchedule = async (value: NotificationAddFormSchedulePayload) => {
-    state.scheduleModeForEdit = value.is_scheduled;
-    state.scheduleForEdit = value.schedule;
-    state.isScheduleValid = value.isScheduleValid;
+const onChangeSchedule = async (value: ScheduleSettingFormType) => {
+    // TODO: update schedule data
+    state.scheduleSettingTypeData = value;
+    // state.scheduleModeForEdit = value.is_scheduled;
+    // state.scheduleForEdit = value.schedule;
+    // state.isScheduleValid = value.isScheduleValid;
 };
 
 const setUserChannelSchedule = async () => {
     try {
         if (!notificationItemState.userChannelId) throw new Error('User channel id is not defined');
-        await SpaceConnector.clientV2.notification.userChannel.setSchedule<UserChannelSetScheduleParameters>({
-            user_channel_id: notificationItemState.userChannelId,
-            is_scheduled: state.scheduleModeForEdit,
-            schedule: state.scheduleForEdit,
-        });
+        // await SpaceConnector.clientV2.notification.userChannel.setSchedule<UserChannelSetScheduleParameters>({
+        //     user_channel_id: notificationItemState.userChannelId,
+        //     is_scheduled: state.scheduleModeForEdit,
+        //     schedule: state.scheduleForEdit,
+        // });
         showSuccessMessage(i18n.t('PLUGIN.COLLECTOR.MAIN.ALT_S_UPDATE_SCHEDULE_TITLE'), '');
         notificationItemState.isEditMode = false;
         emit('edit');

@@ -1,9 +1,11 @@
 import type { Tags } from '@/schema/_common/model';
-import type { UserChannelScheduleInfoType } from '@/schema/alert-manager/user-channel/type';
+
+import type { ScheduleSettingFormType } from '@/common/components/schedule-setting-form/schedule-setting-form';
 
 export interface UserChannelCreateParameters {
     protocol_id: string;
     name: string;
-    schedule?: UserChannelScheduleInfoType;
+    schedule?: ScheduleSettingFormType;
     tags?: Tags;
+    data?: Record<string, any>;
 }

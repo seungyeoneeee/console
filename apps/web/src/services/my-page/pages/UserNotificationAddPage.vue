@@ -21,7 +21,6 @@ const allReferenceStore = useAllReferenceStore();
 const state = reactive({
     pageTitle: computed(() => i18n.t('IDENTITY.USER.NOTIFICATION.FORM.ADD_CHANNEL', { type: state.protocolLabel })),
     protocolId: computed(() => route.params.protocolId),
-    protocolType: computed(() => route.query.protocolType),
     protocolLabel: asyncComputed<string>(async () => {
         const labelFromQuery = queryStringToString(route.query?.protocolLabel);
         if (labelFromQuery) return labelFromQuery;
