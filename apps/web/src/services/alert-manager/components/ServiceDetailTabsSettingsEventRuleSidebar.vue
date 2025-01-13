@@ -335,6 +335,13 @@ watch([() => props.items.length, () => storeState.showEventRuleFormCard], async 
             @apply border-r-0;
             width: 0.063rem;
         }
+        .resizer {
+            width: 1.5rem;
+            height: 1.5rem;
+            position: absolute;
+            left: -1.5rem;
+            z-index: 999;
+        }
     }
 }
 </style>

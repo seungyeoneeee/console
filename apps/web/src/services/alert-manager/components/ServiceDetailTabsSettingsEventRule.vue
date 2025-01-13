@@ -73,6 +73,7 @@ onUnmounted(() => {
                                                                    class="flex-1"
                 />
                 <service-detail-tabs-settings-event-rule-card v-else-if="storeState.eventRuleInfo.event_rule_id"
+                                                              :hide-sidebar.sync="state.hideSidebar"
                                                               class="flex-1"
                 />
             </div>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { useWindowSize } from '@vueuse/core';
 import { computed, reactive } from 'vue';
 
 import { isEmpty } from 'lodash';
 
 import {
-    PCard, PFieldTitle, PFieldGroup, PDataLoader, PDivider, PLazyImg, PI, PIconButton,
+    PCard, PFieldTitle, PFieldGroup, PDataLoader, PDivider, PLazyImg, PI, PIconButton, screens,
 } from '@cloudforet/mirinae';
 
 import { ALERT_STATUS } from '@/schema/alert-manager/alert/constants';
@@ -25,6 +26,7 @@ import type { ServiceReferenceMap } from '@/store/reference/service-reference-st
 import type { WebhookReferenceMap } from '@/store/reference/webhook-reference-store';
 
 import { usePageEditableStatus } from '@/common/composables/page-editable-status';
+import { useProxyValue } from '@/common/composables/proxy-state';
 
 import { gray } from '@/styles/colors';
 
@@ -37,10 +39,23 @@ import {
 import { useServiceDetailPageStore } from '@/services/alert-manager/stores/service-detail-page-store';
 import type { EventRuleActionsItemValueType, EventRuleActionsItemType } from '@/services/alert-manager/types/alert-manager-type';
 
+interface Props {
+  hideSidebar: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    hideSidebar: false,
+});
+
+const emit = defineEmits<{(e: 'update:hide-sidebar', value: string): void;
+}>();
+
 const allReferenceStore = useAllReferenceStore();
 const allReferenceGetters = allReferenceStore.getters;
 const serviceDetailPageStore = useServiceDetailPageStore();
 const serviceDetailPageState = serviceDetailPageStore.state;
+
+const { width } = useWindowSize();
 
 const { hasReadWriteAccess } = usePageEditableStatus();
 
@@ -56,6 +71,8 @@ const storeState = reactive({
 const state = reactive({
     actionSetting: getActionSettingI18n(),
     actionSettingType: getActionSettingTypeI18n(),
+    proxyHideSidebar: useProxyValue('hideSidebar', props, emit),
+    isMobileSize: computed<boolean>(() => width.value < screens.mobile.max),
     actions: computed<EventRuleActionsItemType>(() => {
         const result = {} as EventRuleActionsItemType;
 
@@ -144,10 +161,11 @@ const handleDeleteEventRule = () => {
     <p-data-loader class="service-detail-tabs-settings-event-rule-card"
                    :loading="storeState.eventRuleInfoLoading"
                    :data="storeState.eventRuleInfo"
+                   :class="{ 'hidden-sidebar': !state.proxyHideSidebar && state.isMobileSize, 'is-mobile': state.isMobileSize }"
     >
         <p-card :header="$t('ALERT_MANAGER.EVENT_RULE.TITLE')">
             <template #header>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between event-rule-name">
                     <span class="font-bold">{{ $t('ALERT_MANAGER.EVENT_RULE.TITLE') }}</span>
                     <div v-if="hasReadWriteAccess"
                          class="flex items-center gap-2"
@@ -165,7 +183,7 @@ const handleDeleteEventRule = () => {
             </template>
             <div class="flex flex-col gap-4 py-1 px-4">
                 <div class="form-wrapper">
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 form-wrapper-inside">
                         <div class="input-form-wrapper">
                             <p-field-title :label="$t('ALERT_MANAGER.EVENT_RULE.LABEL_NAME')"
                                            size="lg"
@@ -417,5 +435,32 @@ const handleDeleteEventRule = () => {
             }
         }
     }
+    &.hidden-sidebar {
+        position: relative;
+        margin-left: -15rem;
+    }
+    &.is-mobile {
+        .form-wrapper {
+            @apply flex flex-col;
+            .form-wrapper-inside {
+                @apply flex flex-col gap-4;
+                .input-form-wrapper {
+                    @apply flex flex-col items-start gap-2;
+                    .input-form {
+                        margin-bottom: 0;
+                        &:not(.scope) {
+                            @apply text-blue-800;
+                        }
+                        .scope-wrapper {
+                            @apply flex items-center gap-1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+:deep(.p-card > header) {
+    @apply bg-gray-200;
 }
 </style>
