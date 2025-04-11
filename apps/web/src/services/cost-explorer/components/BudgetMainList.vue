@@ -157,7 +157,7 @@ const tableState = reactive({
             width: '7%',
         },
     ]),
-    items: computed(() => state.budgets.map((budget) => {
+    items: computed(() => state.budgets.map((budget: BudgetModel) => {
         const startDate = dayjs.utc(budget.start, 'YYYY-MM');
         const endDate = dayjs.utc(budget.end, 'YYYY-MM');
         return {
@@ -173,9 +173,10 @@ const tableState = reactive({
                 .filter((budgetUsage) => budgetUsage.budget_id === budget.budget_id && dayjs.utc().format('YYYY-MM') === dayjs.utc(budgetUsage.date).format('YYYY-MM'))
                 .map((budgetUsage) => budgetUsage.actual_spend)[0] ?? 0
                 : state.budgetUsages.filter((budgetUsage) => budgetUsage.budget_id === budget.budget_id).map((budgetUsage) => budgetUsage.actual_spend).reduce((acc, cur) => acc + cur, 0),
-            utilization: budget.time_unit === 'MONTHLY' ? state.budgetUsages.filter((budgetUsage) => budgetUsage.budget_id === budget.budget_id
-            && dayjs.utc().format('YYYY-MM') === dayjs.utc(budgetUsage.date).format('YYYY-MM')).map((budgetUsage) => budgetUsage.utilization)[0] ?? 0
-                : 0,
+            // utilization: budget.time_unit === 'MONTHLY' ? state.budgetUsages.filter((budgetUsage) => budgetUsage.budget_id === budget.budget_id
+            // && dayjs.utc().format('YYYY-MM') === dayjs.utc(budgetUsage.date).format('YYYY-MM')).map((budgetUsage) => budgetUsage.utilization)[0] ?? 0
+            //     : 0,
+            utilization: budget.utilization_rate,
             remaining: 0,
             state: dayjs.utc().isSameOrAfter(startDate, 'month') && dayjs.utc().isSameOrBefore(endDate, 'month')
                 ? i18n.t('BILLING.COST_MANAGEMENT.BUDGET.MAIN.ACTIVE_TIL_DATE') : 'EXPIRED',
@@ -414,7 +415,16 @@ onMounted(async () => {
                 </template>
                 <template #col-utilization-format="{item, value}">
                     <div :class="{ expired: dayjs(item.period.split('~')[1]).format('YYYY-MM-DD') < dayjs().format('YYYY-MM-DD') }">
-                        <div v-if="item.cycle === 'TOTAL' && item.actualSpend > 0">
+                        <div v-if="value">
+                            <p-progress-bar :percentage="value"
+                                            :color="Number(value) < 100
+                                                && Number(value) > 0
+                                                ? '#7F9CF5' : '#FF6A6A'"
+                            />
+                            <span>{{ Number(value).toFixed(2) }} %</span>
+                        </div>
+                        <span v-else />
+                        <!-- <div v-if="item.cycle === 'TOTAL' && item.actualSpend > 0">
                             <p-progress-bar :percentage="Number(((Number(item.actualSpend) / Number(item.budget)) * 100).toFixed(2))"
                                             :color="Number(((Number(item.actualSpend) / Number(item.budget)) * 100).toFixed(2)) < 100
                                                 && Number(((Number(item.actualSpend) / Number(item.budget)) * 100).toFixed(2)) > 0
@@ -427,7 +437,7 @@ onMounted(async () => {
                                             :color="Number(Number(value).toFixed(2)) > 0 && Number(Number(value).toFixed(2)) < 100 ? '#7F9CF5' : '#FF6A6A'"
                             />
                             {{ Number(value).toFixed(2) }} %
-                        </div>
+                        </div> -->
                     </div>
                 </template>
                 <template #col-remaining-format="{item, rowIndex}">
