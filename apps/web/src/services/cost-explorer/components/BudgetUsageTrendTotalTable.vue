@@ -12,11 +12,14 @@ import { i18n } from '@/translations';
 import { useAppContextStore } from '@/store/app-context/app-context-store';
 import { CURRENCY_SYMBOL } from '@/store/display/constant';
 
-import { MANAGED_COST_QUERY_SET_IDS } from '@/services/cost-explorer/constants/managed-cost-analysis-query-sets';
+import { objectToQueryString } from '@/lib/router-query-string';
+
+import { DYNAMIC_COST_QUERY_SET_PARAMS } from '@/services/cost-explorer/constants/managed-cost-analysis-query-sets';
 import { ADMIN_COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/admin/route-constant';
 import { COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/route-constant';
 import { useBudgetDetailPageStore } from '@/services/cost-explorer/stores/budget-detail-page-store';
-import { useCostQuerySetStore } from '@/services/cost-explorer/stores/cost-query-set-store';
+
+import { UNIFIED_COST_KEY } from '../constants/cost-explorer-constant';
 
 interface Props {
     data: any;
@@ -36,7 +39,6 @@ const props = defineProps<Props>();
 const budgetPageStore = useBudgetDetailPageStore();
 const budgetPageState = budgetPageStore.$state;
 const appContextStore = useAppContextStore();
-const costQuerySetStore = useCostQuerySetStore();
 
 const budgetData = computed(() => budgetPageStore.$state.budgetData);
 const isAdminMode = computed<boolean>(() => appContextStore.getters.isAdminMode);
@@ -253,21 +255,27 @@ const handleToggleOriginalData = (value: boolean) => {
         </p-data-table>
 
         <p-link :to="{
-                    name: isAdminMode ? ADMIN_COST_EXPLORER_ROUTE.COST_ANALYSIS._NAME : COST_EXPLORER_ROUTE.COST_ANALYSIS._NAME,
+                    name: isAdminMode ? ADMIN_COST_EXPLORER_ROUTE.COST_ANALYSIS.QUERY_SET._NAME : COST_EXPLORER_ROUTE.COST_ANALYSIS.QUERY_SET._NAME,
                     params: {
-                        costQuerySetId: costQuerySetStore.state.costQuerySetList
-                            .filter(c => c.name === MANAGED_COST_QUERY_SET_IDS.MONTHLY_PROJECT)
-                            .map(c => c.cost_query_set_id)[0]
+                        dataSourceId: UNIFIED_COST_KEY,
+                        costQuerySetId: DYNAMIC_COST_QUERY_SET_PARAMS,
                     },
                     query: {
-                        project_id: budgetPageState.budgetData?.project_id,
-                        service_account_id: budgetPageState.budgetData?.service_account_id,
+                        granularity: 'MONTHLY',
+                        group_by: DYNAMIC_COST_QUERY_SET_PARAMS,
+                        filters: objectToQueryString({
+                            project_id: budgetPageState.budgetData?.project_id,
+                            service_account_id: budgetPageState.budgetData?.service_account_id,
+                        })
                     }
                 }"
                 highlight
                 class="link"
-                action-icon="external-link"
+                action-icon="internal-link"
         >
+            <!-- costQuerySetId: MANAGED_COST_QUERY_SET_IDS.MONTHLY_PROJECT, -->
+            <!-- project_id: budgetPageState.budgetData?.project_id,
+                        service_account_id: budgetPageState.budgetData?.service_account_id, -->
             {{ $t('BILLING.COST_MANAGEMENT.BUDGET.DETAIL.GO_TO_COST_ANALYSIS') }}
         </p-link>
     </div>

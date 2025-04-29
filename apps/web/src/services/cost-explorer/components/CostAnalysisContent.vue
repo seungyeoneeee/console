@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-    onUnmounted, watch, watchEffect,
+    onMounted, onUnmounted, watch,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router/composables';
 
@@ -44,28 +44,46 @@ onUnmounted(() => {
 });
 
 
-watchEffect(() => {
-    const { project_id, service_account_id } = route.query;
-    if (project_id || service_account_id) {
-        const filters: Record<string, string[]> = {
-            ...costAnalysisPageStore.state.filters,
-        };
+// watchEffect(() => {
+//     const { project_id, service_account_id } = route.query;
+//     if (project_id || service_account_id) {
+//         const filters: Record<string, string[]> = {
+//             ...costAnalysisPageStore.state.filters,
+//         };
 
-        if (project_id) {
-            filters.project_id = Array.isArray(project_id)
-                ? project_id.filter((id): id is string => id !== null)
-                : [project_id as string];
-        }
+//         if (project_id) {
+//             filters.project_id = Array.isArray(project_id)
+//                 ? project_id.filter((id): id is string => id !== null)
+//                 : [project_id as string];
+//         }
 
-        if (service_account_id) {
-            filters.service_account_id = Array.isArray(service_account_id)
-                ? service_account_id.filter((id): id is string => id !== null)
-                : [service_account_id as string];
-        }
+//         if (service_account_id) {
+//             filters.service_account_id = Array.isArray(service_account_id)
+//                 ? service_account_id.filter((id): id is string => id !== null)
+//                 : [service_account_id as string];
+//         }
 
-        costAnalysisPageStore.setFilters(filters);
+//         costAnalysisPageStore.setFilters(filters);
+//     }
+// });
+watch(() => costAnalysisPageStore.state.filters, (filters) => {
+    const currentQuery = { ...route.query };
+
+    // Ensure the filters are array strings to avoid reactivity loss or shallow diff issues
+    if (Array.isArray(filters.project_id) && filters.project_id.length > 0) {
+        currentQuery.project_id = [...filters.project_id];
+    } else {
+        delete currentQuery.project_id;
     }
-});
+
+    if (Array.isArray(filters.service_account_id) && filters.service_account_id.length > 0) {
+        currentQuery.service_account_id = [...filters.service_account_id];
+    } else {
+        delete currentQuery.service_account_id;
+    }
+
+    router.replace({ query: currentQuery });
+}, { immediate: true, deep: true });
 
 watch(() => costAnalysisPageGetters.selectedQuerySet, async (selectedQuerySet) => {
     if (selectedQuerySet) {
@@ -79,6 +97,20 @@ watch(() => costAnalysisPageGetters.selectedQuerySet, async (selectedQuerySet) =
     }
 }, { immediate: true });
 
+
+onMounted(() => {
+    const { project_id, service_account_id } = route.query;
+    if (project_id || service_account_id) {
+        const filters = {
+            ...costAnalysisPageStore.state.filters,
+            // eslint-disable-next-line no-nested-ternary
+            project_id: project_id ? (Array.isArray(project_id) ? project_id : [project_id]) : [],
+            // eslint-disable-next-line no-nested-ternary
+            service_account_id: service_account_id ? (Array.isArray(service_account_id) ? service_account_id : [service_account_id]) : [],
+        };
+        costAnalysisPageStore.setFilters(filters);
+    }
+});
 </script>
 
 <template>

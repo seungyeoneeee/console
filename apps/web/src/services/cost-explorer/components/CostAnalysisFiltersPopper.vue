@@ -207,18 +207,24 @@ const handleUpdateFiltersDropdown = (groupBy: string, selectedItems: MenuItem[])
         ...costAnalysisPageState.filters,
         [groupBy]: selectedItems.map((d) => d.name as string),
     };
+
     costAnalysisPageStore.setFilters(newFilters);
 
     const currentQuery = { ...route.query };
     if (groupBy === GROUP_BY.PROJECT || groupBy === GROUP_BY.SERVICE_ACCOUNT) {
+        const queryKey = groupBy === GROUP_BY.PROJECT ? 'project_id' : 'service_account_id';
         if (selectedItems.length > 0) {
-            currentQuery[groupBy === GROUP_BY.PROJECT ? 'project' : 'service_account_id'] = selectedItems.map((d) => d.name)[0];
+            const selectedName = selectedItems[0]?.name;
+            if (selectedName) {
+                currentQuery[queryKey] = selectedName;
+            }
         } else {
-            delete currentQuery[groupBy === GROUP_BY.PROJECT ? 'project' : 'service_account_id'];
+            delete currentQuery[queryKey];
         }
         router.replace({ query: currentQuery });
     }
 };
+
 const handleDisabledFilters = (all?: boolean, disabledFilter?: string) => {
     if (all) {
         state.selectedItemsMap = getInitialSelectedItemsMap();

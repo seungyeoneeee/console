@@ -75,13 +75,7 @@ const state = reactive({
     granularity: undefined as Granularity|undefined,
     isPeriodInvalid: computed<boolean>(() => costAnalysisPageGetters.isPeriodInvalid),
     invalidPeriodMessage: computed(() => i18n.t('BILLING.COST_MANAGEMENT.COST_ANALYSIS.INVALID_PERIOD_TEXT')),
-    selectedFiltersCount: computed(() => {
-        let count = 0;
-        Object.values(costAnalysisPageState.filters ?? {}).forEach((filterItems) => {
-            count += filterItems.length;
-        });
-        return count;
-    }),
+    selectedFiltersCount: computed(() => computed(() => Object.values(costAnalysisPageState.filters ?? {}).filter((filterItems) => Array.isArray(filterItems) && filterItems.length > 0).length).value),
     workspaceScopeLoading: false,
     visibleNotiModal: false,
 });
