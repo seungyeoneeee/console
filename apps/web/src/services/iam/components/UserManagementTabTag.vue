@@ -42,7 +42,7 @@ const userPageState = userPageStore.state;
 
 const state = reactive({
     items: [] as TableItem[],
-    selectedUser: computed(() => userPageStore.getters.selectedUsers[0]),
+    selectedUser: computed(() => userPageState.selectedUsers[0]),
     selectedIdx: computed(() => userPageStore.state.selectedIndices[0]),
     sortBy: 'key',
     sortDesc: true,
@@ -90,6 +90,7 @@ const handleTagUpdate = async (newTags:Tags) => {
             _state.state.users = cloneUsers;
 
             const cloneSelectedUser = cloneDeep(_state.state.selectedUser);
+            console.log('cloneSelectedUser', cloneSelectedUser);
             cloneSelectedUser.tags = newTags;
             _state.state.selectedUser = cloneSelectedUser;
         });
