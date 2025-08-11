@@ -13,7 +13,8 @@ export const useUserGroupChannelGetQuery = () => {
     const userGroupPageGetters = userGroupPageStore.getters;
     const selectedChannelId = computed(() => userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id);
 
-    const { withSuffix: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
+    const { key: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
+        contextKey: computed(() => selectedChannelId.value),
         params: computed(() => ({
             channel_id: selectedChannelId.value ?? '',
         })),
@@ -22,7 +23,7 @@ export const useUserGroupChannelGetQuery = () => {
     const { userGroupChannelAPI } = useUserGroupChannelApi();
 
     const { data: userGroupChannelData, isFetching: isUserGroupChannelFetching } = useScopedQuery({
-        queryKey: userGroupChannelGetQueryKey(selectedChannelId.value ?? ''),
+        queryKey: userGroupChannelGetQueryKey,
         queryFn: () => userGroupChannelAPI.get(userGroupChannelGetQueryParams.value),
         enabled: computed(() => !!selectedChannelId.value),
         gcTime: 1000 * 60 * 2,

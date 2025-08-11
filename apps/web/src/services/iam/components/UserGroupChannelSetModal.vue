@@ -72,7 +72,7 @@ const { mutateAsync: userGroupChannelMutate } = useMutation({
         await queryClient.invalidateQueries({ queryKey: userGroupChannelListQueryKey.value });
         const cid = userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id;
         if (cid) {
-            await queryClient.invalidateQueries({ queryKey: userGroupChannelGetQueryKey({ channel_id: cid }) });
+            await queryClient.invalidateQueries({ queryKey: userGroupChannelGetQueryKey.value });
         }
         return res;
     },
