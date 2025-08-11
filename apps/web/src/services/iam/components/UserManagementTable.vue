@@ -94,7 +94,6 @@ const state = reactive({
         const additionalItems: Record<string, any> = {};
         if (userPageState.isAdminMode) {
             additionalItems.mfa_state = user?.mfa?.state === 'ENABLED' ? 'ON' : 'OFF';
-            additionalItems.role_id = user?.role_type;
         } else {
             additionalItems.type = user?.role_binding_info?.workspace_group_id ? 'Workspace Group' : 'Workspace';
             additionalItems.role_binding = {
