@@ -47,7 +47,7 @@ const { mutateAsync: deleteUserGroup } = useMutation({
     mutationFn: userGroupAPI.delete,
     onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
-        showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.DELETE.SHOW_SUCCESS_MESSAGE'));
+        showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.DELETE.SHOW_SUCCESS_MESSAGE'), '');
         emit('confirm');
     },
     onError: (e) => {

@@ -70,7 +70,7 @@ const { mutateAsync: addUsers, isPending: addUsersIsPending } = useMutation({
         await queryClient.invalidateQueries({ queryKey: userListQueryKey.value });
         await queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
         emit('confirm');
-        showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.ADD_NEW_USER.SUCCESS_MESSAGE'));
+        showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.ADD_NEW_USER.SUCCESS_MESSAGE'), '');
     },
     onError: (error) => {
         ErrorHandler.handleError(error);
