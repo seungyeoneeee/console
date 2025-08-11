@@ -70,7 +70,9 @@ const { queryTags } = queryTagHelper;
 const queryClient = useQueryClient();
 const { key: userListQueryKey } = useServiceQueryKey('identity', 'user', 'list');
 const { key: workspaceUserListQueryKey } = useServiceQueryKey('identity', 'workspace-user', 'list');
-const { withSuffix: workspaceUserGetQueryKey } = useServiceQueryKey('identity', 'workspace-user', 'get');
+const { key: workspaceUserGetQueryKey } = useServiceQueryKey('identity', 'workspace-user', 'get', {
+    contextKey: computed(() => userPageState.selectedUserIds[0] ?? ''),
+});
 
 const { roleListData } = useRoleListQuery();
 
@@ -92,7 +94,6 @@ const state = reactive({
         const additionalItems: Record<string, any> = {};
         if (userPageState.isAdminMode) {
             additionalItems.mfa_state = user?.mfa?.state === 'ENABLED' ? 'ON' : 'OFF';
-            additionalItems.role_id = user?.role_type;
         } else {
             additionalItems.type = user?.role_binding_info?.workspace_group_id ? 'Workspace Group' : 'Workspace';
             additionalItems.role_binding = {
@@ -253,13 +254,11 @@ const dropdownMenuHandler: AutocompleteHandler = async () => {
 };
 
 const { mutateAsync: updateRoleBinding } = useRoleBindingUpdateRoleMutation({
-    onSuccess: (variables) => {
-        queryClient.invalidateQueries({ queryKey: userListQueryKey.value });
-        queryClient.invalidateQueries({ queryKey: workspaceUserListQueryKey.value });
-        queryClient.invalidateQueries({
-            queryKey: workspaceUserGetQueryKey({
-                user_id: variables.user_id,
-            }),
+    onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: userListQueryKey.value });
+        await queryClient.invalidateQueries({ queryKey: workspaceUserListQueryKey.value });
+        await queryClient.invalidateQueries({
+            queryKey: workspaceUserGetQueryKey.value,
         });
         showSuccessMessage(i18n.t('IAM.USER.MAIN.ALT_S_CHANGE_ROLE'), '');
     },

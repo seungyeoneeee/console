@@ -34,7 +34,7 @@ const { mutateAsync: removeUsers, isPending: removeUsersIsPending } = useMutatio
         await queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
         await queryClient.invalidateQueries({ queryKey: userGroupGetQueryKey.value });
         emit('confirm');
-        showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.REMOVE_USER.SHOW_SUCCESS_MESSAGE'));
+        showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.REMOVE_USER.SHOW_SUCCESS_MESSAGE'), '');
     },
     onError: (error) => {
         ErrorHandler.handleError(error);

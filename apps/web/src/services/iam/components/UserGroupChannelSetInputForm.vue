@@ -18,6 +18,7 @@ import { i18n } from '@/translations';
 import { useFormValidator } from '@/common/composables/form-validator';
 
 import UserGroupChannelAddFormData from '@/services/iam/components/UserGroupChannelAddFormData.vue';
+import { useUserGroupChannelGetQuery } from '@/services/iam/composables/use-user-group-channel-get-query';
 import { useNotificationChannelCreateFormStore } from '@/services/iam/store/notification-channel-create-form-store';
 import { useUserGroupPageStore } from '@/services/iam/store/user-group-page-store';
 
@@ -51,6 +52,9 @@ const { key: notificationProtocolQueryKey, params: notificationProtocolQueryPara
     })),
 });
 
+
+const { userGroupChannelData } = useUserGroupChannelGetQuery();
+
 const { data: notificationProtocolData } = useScopedQuery({
     queryKey: notificationProtocolQueryKey,
     queryFn: () => notificationProtocolAPI.get(notificationProtocolQueryParams.value),
@@ -79,7 +83,7 @@ const {
     setForm,
     invalidState,
 } = useFormValidator({
-    channelName: userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE') ? '' : notificationChannelCreateFormState.channelName,
+    channelName: '',
 }, {
     channelName(value: string) {
         if (!value) return ' ';
@@ -91,12 +95,20 @@ const {
 });
 
 /* Component */
+watch(
+    () => userGroupChannelData.value?.name,
+    (name) => {
+        const isCreate = userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE');
+        if (!isCreate) setForm('channelName', name ?? '');
+    },
+    { immediate: true },
+);
 const handleUpdateValid = (value: boolean) => {
     validateState.schemaValid = value;
 };
 
 /* Watcher */
-watch(() => channelName, (nv_channel_name) => {
+watch(channelName, (nv_channel_name) => {
     if (nv_channel_name) {
         emit('update-channel-name', nv_channel_name);
     }

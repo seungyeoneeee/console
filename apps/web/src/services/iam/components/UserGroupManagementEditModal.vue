@@ -46,10 +46,10 @@ const { withSuffix: userGroupGetQueryKey } = useServiceQueryKey('identity', 'use
 const { mutateAsync: createUserGroup, isPending: isCreateUserGroupPending } = useMutation({
     mutationFn: userGroupAPI.create,
     onSuccess: async () => {
+        showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.CREATE_USER_GROUP.SUCCESS_MESSAGE'), '');
         await queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
         await queryClient.invalidateQueries({ queryKey: userGroupGetQueryKey({ userGroupId: userGroupPageGetters.selectedUserGroups[0].user_group_id }) });
         emit('confirm');
-        showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.CREATE_USER_GROUP.SUCCESS_MESSAGE'));
     },
     onError: (e) => {
         ErrorHandler.handleError(e, true);
@@ -63,10 +63,10 @@ const { mutateAsync: createUserGroup, isPending: isCreateUserGroupPending } = us
 const { mutateAsync: updateUserGroup, isPending: isUpdateUserGroupPending } = useMutation({
     mutationFn: userGroupAPI.update,
     onSuccess: async () => {
+        showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.CREATE_USER_GROUP.UPDATE_SUCCESS_MESSAGE'), '');
         await queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
         await queryClient.invalidateQueries({ queryKey: userGroupGetQueryKey({ userGroupId: userGroupPageGetters.selectedUserGroups[0].user_group_id }) });
         emit('confirm');
-        showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.CREATE_USER_GROUP.UPDATE_SUCCESS_MESSAGE'));
     },
     onError: (e) => {
         ErrorHandler.handleError(e, true);

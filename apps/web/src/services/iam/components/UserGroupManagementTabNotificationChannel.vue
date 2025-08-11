@@ -31,12 +31,14 @@ import { assetUrlConverter } from '@/lib/helper/asset-helper';
 import type { DayType } from '@/common/components/schedule-setting-form/schedule-setting-form';
 import { useQueryTags } from '@/common/composables/query-tags';
 
+import { useUserGroupChannelGetQuery } from '@/services/iam/composables/use-user-group-channel-get-query';
 import {
     USER_GROUP_CHANNELS_SEARCH_HANDLERS,
     USER_GROUP_MODAL_TYPE,
 } from '@/services/iam/constants/user-group-constant';
 import { useNotificationChannelCreateFormStore } from '@/services/iam/store/notification-channel-create-form-store';
 import { useUserGroupPageStore } from '@/services/iam/store/user-group-page-store';
+
 
 
 interface Props {
@@ -114,9 +116,15 @@ const tableState = reactive({
     fields: computed(() => [
         { name: 'name', label: 'Name', width: '350px' },
         { name: 'channel_id', label: 'Channel', width: '240px' },
-        { name: 'day', label: 'Day', width: '327px' },
-        { name: 'time', label: 'Time', width: '116px' },
-        { name: 'timeZone', label: 'Time Zone', width: '250px' },
+        {
+            name: 'day', label: 'Day', width: '327px', sortable: false,
+        },
+        {
+            name: 'time', label: 'Time', width: '116px', sortable: false,
+        },
+        {
+            name: 'timeZone', label: 'Time Zone', width: '250px', sortable: false,
+        },
     ]),
     items: computed<ChannelItem[]>(() => (userGroupChannelListData.value?.results || []).map((channel) => ({
         name: channel.name,
@@ -172,18 +180,7 @@ const { data: notificationProtocolListData } = useScopedQuery({
     staleTime: 1000 * 30,
 }, ['DOMAIN', 'WORKSPACE']);
 
-const { key: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
-    params: computed(() => ({
-        channel_id: userGroupPageGetters.selectedUserGroupChannel[0]?.channel_id,
-    })),
-});
-const { data: queryData } = useScopedQuery({
-    queryKey: userGroupChannelGetQueryKey,
-    queryFn: async () => userGroupChannelAPI.get(userGroupChannelGetQueryParams.value),
-    enabled: computed(() => !!userGroupPageGetters.selectedUserGroupChannel[0]?.channel_id),
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 60 * 2,
-}, ['DOMAIN', 'WORKSPACE']);
+const { userGroupChannelData } = useUserGroupChannelGetQuery();
 
 /* Component */
 const refreshUserGroupChannelList = () => {
@@ -211,10 +208,10 @@ const handleUpdateModal = async (modalType: string) => {
             themeColor: 'primary1',
         });
     } else if (modalType === 'edit') {
-        if (queryData.value) {
+        if (userGroupChannelData.value) {
             const {
                 protocol_id, schedule, name,
-            } = queryData.value;
+            } = userGroupChannelData.value;
 
             if (protocol_id) {
                 const protocolResult = notificationProtocolListData.value?.find((protocol) => protocol.protocol_id === protocol_id);
