@@ -11,6 +11,7 @@ import type { MenuItem } from '@cloudforet/mirinae/types/controls/context-menu/t
 import type { JsonSchema } from '@cloudforet/mirinae/types/controls/forms/json-schema-form/type';
 
 import { useNotificationProtocolApi } from '@/api-clients/alert-manager/notification-protocol/composables/use-notification-protocol-api';
+import { useUserGroupChannelApi } from '@/api-clients/alert-manager/user-group-channel/composables/use-user-group-channel-api';
 import { useServiceQueryKey } from '@/query/core/query-key/use-service-query-key';
 import { useScopedQuery } from '@/query/service-query/use-scoped-query';
 import { i18n } from '@/translations';
@@ -28,6 +29,7 @@ const notificationChannelCreateFormState = notificationChannelCreateFormStore.st
 
 const userGroupPageStore = useUserGroupPageStore();
 const userGroupPageState = userGroupPageStore.state;
+const userGroupPageGetters = userGroupPageStore.getters;
 
 interface ChannelInfo {
   channelName: string;
@@ -50,6 +52,25 @@ const { key: notificationProtocolQueryKey, params: notificationProtocolQueryPara
         protocol_id: protocolId.value,
     })),
 });
+
+const { userGroupChannelAPI } = useUserGroupChannelApi();
+
+const { key: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
+    contextKey: computed(() => userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id),
+    params: computed(() => ({
+        channel_id: userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id ?? '',
+    })),
+});
+
+const { data: userGroupChannelData } = useScopedQuery({
+    queryKey: userGroupChannelGetQueryKey.value,
+    queryFn: () => userGroupChannelAPI.get(userGroupChannelGetQueryParams.value),
+    enabled: computed(() => !!userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id),
+    initialData: () => ({
+        name: '',
+    }),
+    gcTime: 1000 * 60 * 2,
+}, ['DOMAIN', 'WORKSPACE']);
 
 const { data: notificationProtocolData } = useScopedQuery({
     queryKey: notificationProtocolQueryKey,
@@ -79,7 +100,7 @@ const {
     setForm,
     invalidState,
 } = useFormValidator({
-    channelName: userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE') ? '' : notificationChannelCreateFormState.channelName,
+    channelName: '',
 }, {
     channelName(value: string) {
         if (!value) return ' ';
@@ -91,12 +112,20 @@ const {
 });
 
 /* Component */
+watch(
+    () => userGroupChannelData.value?.name,
+    (name) => {
+        const isCreate = userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE');
+        if (!isCreate) setForm('channelName', name ?? '');
+    },
+    { immediate: true },
+);
 const handleUpdateValid = (value: boolean) => {
     validateState.schemaValid = value;
 };
 
 /* Watcher */
-watch(() => channelName, (nv_channel_name) => {
+watch(channelName, (nv_channel_name) => {
     if (nv_channel_name) {
         emit('update-channel-name', nv_channel_name);
     }

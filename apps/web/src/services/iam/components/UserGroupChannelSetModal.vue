@@ -49,6 +49,7 @@ const isSchemaValid = ref<boolean>(false);
 const queryClient = useQueryClient();
 const { userGroupChannelAPI } = useUserGroupChannelApi();
 const { key: userGroupChannelListQueryKey } = useServiceQueryKey('alert-manager', 'user-group-channel', 'list');
+const { withSuffix: userGroupChannelGetQueryKey } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get');
 
 const storeState = reactive({
     protocolIcon: computed<string>(() => notificationChannelCreateFormState.selectedProtocol.icon),
@@ -62,21 +63,24 @@ const state = reactive<ChannelSetModalState>({
     scheduleInfo: notificationChannelCreateFormState.scheduleInfo,
 });
 
-// TODO: Distinguishing conditions using modal types, etc.
-const { mutate: userGroupChannelMutate } = useMutation({
-    mutationFn: (params: UserGroupChannelCreateParameters|UserGroupChannelUpdateParameters) => {
-        if (userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE')) {
-            return userGroupChannelAPI.create(params as UserGroupChannelCreateParameters);
+const { mutateAsync: userGroupChannelMutate } = useMutation({
+    mutationFn: async (params: UserGroupChannelCreateParameters|UserGroupChannelUpdateParameters) => {
+        const res = userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE')
+            ? await userGroupChannelAPI.create(params as UserGroupChannelCreateParameters)
+            : await userGroupChannelAPI.update(params as UserGroupChannelUpdateParameters);
+        await queryClient.invalidateQueries({ queryKey: userGroupChannelListQueryKey.value });
+        const cid = userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id;
+        if (cid) {
+            await queryClient.invalidateQueries({ queryKey: userGroupChannelGetQueryKey({ channel_id: cid }) });
         }
-        return userGroupChannelAPI.update(params as UserGroupChannelUpdateParameters);
+        return res;
     },
     onSuccess: () => {
         emit('confirm');
-        queryClient.invalidateQueries({ queryKey: userGroupChannelListQueryKey.value });
         if (userGroupPageState.modal.title === i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.TITLE')) {
-            showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.SUCCESS_MESSAGE'));
+            showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.SUCCESS_MESSAGE'), '');
         } else {
-            showSuccessMessage('', i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.UPDATE_SUCCESS_MESSAGE'));
+            showSuccessMessage(i18n.t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.UPDATE_SUCCESS_MESSAGE'), '');
         }
     },
     onError: (error) => {
@@ -121,7 +125,7 @@ const handleConfirm = async () => {
         data: {},
         schedule: notificationChannelCreateFormState.scheduleInfo,
     } as UserGroupChannelUpdateParameters;
-    userGroupChannelMutate(params);
+    await userGroupChannelMutate(params);
 };
 
 const handleCancel = () => {
@@ -132,6 +136,7 @@ const handleCancel = () => {
             themeColor: 'primary1',
         };
         notificationChannelCreateFormStore.initState();
+        userGroupPageStore.selectedUserGroupChannelIdx([]);
     } else {
         handleClose();
     }
@@ -139,6 +144,7 @@ const handleCancel = () => {
 
 const handleClose = () => {
     notificationChannelCreateFormStore.initState();
+    userGroupPageStore.selectedUserGroupChannelIdx([]);
     userGroupPageState.modal = {
         type: '',
         title: '',

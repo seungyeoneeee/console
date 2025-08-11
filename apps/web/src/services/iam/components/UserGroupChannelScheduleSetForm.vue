@@ -1,31 +1,52 @@
 <script lang="ts" setup>
-import { ref, watch, watchEffect } from 'vue';
+import {
+    computed, watchEffect,
+} from 'vue';
+
+import { useUserGroupChannelApi } from '@/api-clients/alert-manager/user-group-channel/composables/use-user-group-channel-api';
+import { useServiceQueryKey } from '@/query/core/query-key/use-service-query-key';
+import { useScopedQuery } from '@/query/service-query/use-scoped-query';
 
 import type { ScheduleSettingFormType } from '@/common/components/schedule-setting-form/schedule-setting-form';
 import ScheduleSettingForm from '@/common/components/schedule-setting-form/ScheduleSettingForm.vue';
 
 import { useNotificationChannelCreateFormStore } from '@/services/iam/store/notification-channel-create-form-store';
+import { useUserGroupPageStore } from '@/services/iam/store/user-group-page-store';
+
+
+const userGroupPageStore = useUserGroupPageStore();
+const userGroupPageGetters = userGroupPageStore.getters;
 
 const notificationChannelCreateFormStore = useNotificationChannelCreateFormStore();
 const notificationChannelCreateFormState = notificationChannelCreateFormStore.state;
 
-const scheduleSettingTypeData = ref<ScheduleSettingFormType>();
+const channelId = computed(() => userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id ?? '');
+
+const { userGroupChannelAPI } = useUserGroupChannelApi();
+
+const { key: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
+    params: computed(() => ({
+        channel_id: channelId.value,
+    })),
+});
+
+const { data: userGroupChannelData } = useScopedQuery({
+    queryKey: userGroupChannelGetQueryKey,
+    queryFn: () => userGroupChannelAPI.get(userGroupChannelGetQueryParams.value),
+    enabled: computed(() => !!channelId.value),
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 2,
+}, ['DOMAIN', 'WORKSPACE']);
 
 /* Component */
 const handleScheduleForm = (value: ScheduleSettingFormType) => {
-    scheduleSettingTypeData.value = value;
+    notificationChannelCreateFormStore.updateSchedule(value);
 };
 
-watch(() => notificationChannelCreateFormState.scheduleInfo, (nv_schedule_info) => {
-    if (nv_schedule_info) {
-        scheduleSettingTypeData.value = nv_schedule_info;
-    }
-}, { deep: true, immediate: true });
-
 watchEffect(() => {
-    notificationChannelCreateFormStore.$patch((_state) => {
-        _state.state.scheduleInfo = scheduleSettingTypeData.value;
-    });
+    if (userGroupChannelData.value?.schedule) {
+        notificationChannelCreateFormStore.updateSchedule(userGroupChannelData.value.schedule);
+    }
 });
 </script>
 
@@ -35,7 +56,8 @@ watchEffect(() => {
             {{ $t('IAM.USER_GROUP.MODAL.CREATE_CHANNEL.DESC.SCHEDULE.TITLE') }}
         </p>
         <schedule-setting-form
-            :schedule-form="scheduleSettingTypeData"
+            :key="channelId"
+            :schedule-form="notificationChannelCreateFormState.scheduleInfo"
             @update-form="handleScheduleForm"
         />
     </div>

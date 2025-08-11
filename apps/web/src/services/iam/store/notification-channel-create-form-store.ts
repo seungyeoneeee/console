@@ -45,6 +45,12 @@ export const useNotificationChannelCreateFormStore = defineStore('channel-create
         },
     });
 
+    const mutations = {
+        updateSchedule(value: UserGroupChannelScheduleInfoType) {
+            state.scheduleInfo = value;
+        },
+    };
+
     const actions = {
         initState() {
             state.selectedProtocol = {
@@ -78,6 +84,7 @@ export const useNotificationChannelCreateFormStore = defineStore('channel-create
 
     return {
         state,
+        ...mutations,
         ...actions,
     };
 });
