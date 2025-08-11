@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-    computed, reactive, watch,
+    computed, reactive,
 } from 'vue';
 
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
@@ -71,6 +71,10 @@ const props = withDefaults(defineProps<Props>(), {
     activeTab: '',
 });
 
+const roleListApiQueryHelper = new ApiQueryHelper();
+const workspaceApiHelper = new ApiQueryHelper()
+    .setPage(1, 15);
+
 const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
 const userStore = useUserStore();
@@ -78,16 +82,95 @@ const userStore = useUserStore();
 const selectedUserId = computed(() => userPageState.selectedUserIds[0] ?? '');
 const { userData } = useUserGetQuery(selectedUserId);
 
+const { key: roleBindingListQueryKey, params: roleBindingListParams } = useServiceQueryKey('identity', 'role-binding', 'list', {
+    params: computed(() => {
+        workspaceApiHelper.setSort(state.sortBy, state.sortDesc);
+        workspaceApiHelper.setFilters([
+            { k: 'user_id', v: userData.value?.user_id || '', o: '=' },
+            { k: 'resource_group', v: RESOURCE_GROUP.WORKSPACE, o: '=' },
+        ]);
+        return { query: workspaceApiHelper.data } as RoleBindingListParameters;
+    }),
+});
+
+const { roleListData } = useRoleListQuery();
+
+const { roleBindingAPI } = useRoleBindingApi();
+const queryClient = useQueryClient();
+
+const { data: roleBindingListData } = useScopedQuery({
+    queryKey: roleBindingListQueryKey,
+    queryFn: () => roleBindingAPI.list(roleBindingListParams.value),
+    select: (data) => data?.results || [],
+    initialData: {
+        results: [],
+        total_count: 0,
+    },
+    gcTime: 1000 * 30,
+    enabled: true,
+}, ['DOMAIN']);
+
+const { workspaceAPI } = useWorkspaceApi();
+
+const { key: workspaceListQueryKey } = useServiceQueryKey('identity', 'workspace', 'list');
+const { data: workspaceListData } = useScopedQuery({
+    queryKey: workspaceListQueryKey,
+    queryFn: () => workspaceAPI.list(),
+    select: (data) => data?.results || [],
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 30,
+    enabled: true,
+}, ['DOMAIN']);
+
+const { key: roleListQueryKey } = useServiceQueryKey('identity', 'role', 'list', {
+    params: computed(() => ({
+        query: {
+            filter: [{ k: 'user_id', v: userData.value?.user_id || '', o: '=' }],
+        },
+    })),
+});
+
+const { roleAPI } = useRoleApi();
+
+const getRoleList = async ({ params }: { params: RoleListParameters }) => queryClient.fetchQuery({
+    queryKey: roleListQueryKey,
+    queryFn: () => roleAPI.list(params),
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 30,
+});
+
 const storeState = reactive({
     timezone: computed<string>(() => userStore.state.timezone ?? 'UTC'),
 });
 const state = reactive({
     loading: false,
     tags: {},
-    items: [] as TableItem[],
+    items: computed<TableItem[]>(() => {
+        const list = roleBindingListData.value ?? [];
+        const workspaces = workspaceListData.value ?? [];
+        const roles = roleListData.value ?? [];
+        return list.reduce((acc: TableItem[], k: any) => {
+            const workspaceInfo = workspaces.find((w: any) => w.workspace_id === k.workspace_id);
+            if (!workspaceInfo || workspaceInfo?.state === WORKSPACE_STATE.DISABLE) return acc;
+            acc.push({
+                workspace: {
+                    name: workspaceInfo?.name || '',
+                    id: k.workspace_id,
+                },
+                role_binding: {
+                    type: k.role_type,
+                    name: roles.find((r) => r.role_id === k.role_id)?.name || '',
+                    role_binding_id: k.role_binding_id,
+                },
+                created_at: k.created_at,
+                state: workspaceInfo?.state || undefined,
+                is_dormant: workspaceInfo?.is_dormant || false,
+            });
+            return acc;
+        }, []);
+    }),
     sortBy: 'workspace_id',
     sortDesc: true,
-    // selectedUser: computed(() => userData.value ?? workspaceUserData.value ?? {}),
     selectedRemoveItem: '',
     rowIndex: 0,
 });
@@ -122,7 +205,6 @@ const modalState = reactive({
 const handleChangeSort = (sortBy, sortDesc) => {
     state.sortBy = sortBy;
     state.sortDesc = sortDesc;
-    fetchWorkspaceList();
 };
 const handleMenuVisible = (idx: number) => {
     if (!dropdownState.visibleMenu) return;
@@ -136,107 +218,6 @@ const handleClickButton = async (value: string) => {
 const closeRemoveModal = () => {
     modalState.visible = false;
 };
-
-const { key: roleBindingListQueryKey } = useServiceQueryKey('identity', 'role-binding', 'list', {
-    params: computed(() => ({
-        query: {
-            filter: [{ k: 'user_id', v: userData.value?.user_id || '', o: '=' }],
-        },
-    })),
-});
-
-const { roleListData } = useRoleListQuery();
-
-const { roleBindingAPI } = useRoleBindingApi();
-const queryClient = useQueryClient();
-
-const getRoleBindingList = async ({ params }: { params: RoleBindingListParameters }) => queryClient.fetchQuery({
-    queryKey: roleBindingListQueryKey,
-    queryFn: () => roleBindingAPI.list(params),
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 30,
-});
-
-const { workspaceAPI } = useWorkspaceApi();
-
-const { key: workspaceListQueryKey } = useServiceQueryKey('identity', 'workspace', 'list');
-const { data: workspaceListData } = useScopedQuery({
-    queryKey: workspaceListQueryKey,
-    queryFn: () => workspaceAPI.list(),
-    select: (data) => data?.results || [],
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 30,
-    enabled: true,
-}, ['DOMAIN']);
-
-/* API */
-const roleListApiQueryHelper = new ApiQueryHelper();
-const workspaceApiHelper = new ApiQueryHelper()
-    .setPage(1, 15);
-const fetchWorkspaceList = async () => {
-    state.loading = true;
-    workspaceApiHelper.setSort(state.sortBy, state.sortDesc);
-    workspaceApiHelper.setFilters([
-        { k: 'user_id', v: userData.value?.user_id || '', o: '=' },
-        { k: 'resource_group', v: RESOURCE_GROUP.WORKSPACE, o: '=' },
-    ]);
-    try {
-        if (!userData.value?.user_id) {
-            state.items = [];
-            return;
-        }
-        const { results } = await getRoleBindingList({
-            params: {
-                query: workspaceApiHelper.data,
-            },
-        });
-        if (!results) {
-            state.items = [];
-            return;
-        }
-        const _results: TableItem[] = [];
-        (results ?? []).forEach((k) => {
-            const workspaceInfo = workspaceListData.value?.find((w) => w.workspace_id === k.workspace_id);
-            if (!workspaceInfo || workspaceInfo?.state === WORKSPACE_STATE.DISABLE) return;
-            _results.push({
-                workspace: {
-                    name: workspaceInfo?.name || '',
-                    id: k.workspace_id,
-                },
-                role_binding: {
-                    type: k.role_type,
-                    name: roleListData.value?.find((r) => r.role_id === k.role_id)?.name || '',
-                    role_binding_id: k.role_binding_id,
-                },
-                created_at: k.created_at,
-                state: workspaceInfo?.state || undefined,
-                is_dormant: workspaceInfo?.is_dormant || false,
-            });
-        });
-        state.items = _results;
-    } catch (e) {
-        state.items = [];
-    } finally {
-        state.loading = false;
-    }
-};
-
-const { key: roleListQueryKey } = useServiceQueryKey('identity', 'role', 'list', {
-    params: computed(() => ({
-        query: {
-            filter: [{ k: 'user_id', v: userData.value?.user_id || '', o: '=' }],
-        },
-    })),
-});
-
-const { roleAPI } = useRoleApi();
-
-const getRoleList = async ({ params }: { params: RoleListParameters }) => queryClient.fetchQuery({
-    queryKey: roleListQueryKey,
-    queryFn: () => roleAPI.list(params),
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 30,
-});
 
 const dropdownMenuHandler: AutocompleteHandler = async (inputText: string) => {
     dropdownState.loading = true;
@@ -311,8 +292,8 @@ const { mutateAsync: deleteRoleBinding, isPending: isDeleteRoleBindingPending } 
         showSuccessMessage(i18n.t('IDENTITY.USER.MAIN.ALT_S_REMOVE_USER'), '');
         closeRemoveModal();
         await queryClient.invalidateQueries({ queryKey: roleBindingListQueryKey.value });
-        await fetchWorkspaceList();
         await queryClient.invalidateQueries({ queryKey: workspaceListQueryKey.value });
+        // await fetchWorkspaceList();
     },
     onError: (e: any) => {
         showErrorMessage(i18n.t('IDENTITY.USER.MAIN.ALT_E_REMOVE_USER'), '');
@@ -325,16 +306,6 @@ const handleRemoveButton = async () => {
         role_binding_id: state.selectedRemoveItem,
     });
 };
-
-/* Watcher */
-watch([
-    () => props.activeTab,
-    () => userData.value?.user_id,
-    () => workspaceListData.value,
-], async ([, userId, workspaceList]) => {
-    if (!userId || !workspaceList) return;
-    await fetchWorkspaceList();
-}, { immediate: true });
 </script>
 
 <template>
