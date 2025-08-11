@@ -46,7 +46,7 @@ export const useNotificationChannelCreateFormStore = defineStore('channel-create
     });
 
     const mutations = {
-        updateSchedule(value: UserGroupChannelScheduleInfoType) {
+        updateScheduleInfo(value: UserGroupChannelScheduleInfoType) {
             state.scheduleInfo = value;
         },
     };

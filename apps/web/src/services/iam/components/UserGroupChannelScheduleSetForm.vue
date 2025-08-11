@@ -40,12 +40,12 @@ const { data: userGroupChannelData } = useScopedQuery({
 
 /* Component */
 const handleScheduleForm = (value: ScheduleSettingFormType) => {
-    notificationChannelCreateFormStore.updateSchedule(value);
+    notificationChannelCreateFormStore.updateScheduleInfo(value);
 };
 
 watchEffect(() => {
     if (userGroupChannelData.value?.schedule) {
-        notificationChannelCreateFormStore.updateSchedule(userGroupChannelData.value.schedule);
+        notificationChannelCreateFormStore.updateScheduleInfo(userGroupChannelData.value.schedule);
     }
 });
 </script>
