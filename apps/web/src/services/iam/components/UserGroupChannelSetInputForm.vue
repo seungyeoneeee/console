@@ -11,7 +11,6 @@ import type { MenuItem } from '@cloudforet/mirinae/types/controls/context-menu/t
 import type { JsonSchema } from '@cloudforet/mirinae/types/controls/forms/json-schema-form/type';
 
 import { useNotificationProtocolApi } from '@/api-clients/alert-manager/notification-protocol/composables/use-notification-protocol-api';
-import { useUserGroupChannelApi } from '@/api-clients/alert-manager/user-group-channel/composables/use-user-group-channel-api';
 import { useServiceQueryKey } from '@/query/core/query-key/use-service-query-key';
 import { useScopedQuery } from '@/query/service-query/use-scoped-query';
 import { i18n } from '@/translations';
@@ -19,6 +18,7 @@ import { i18n } from '@/translations';
 import { useFormValidator } from '@/common/composables/form-validator';
 
 import UserGroupChannelAddFormData from '@/services/iam/components/UserGroupChannelAddFormData.vue';
+import { useUserGroupChannelGetQuery } from '@/services/iam/composables/use-user-group-channel-get-query';
 import { useNotificationChannelCreateFormStore } from '@/services/iam/store/notification-channel-create-form-store';
 import { useUserGroupPageStore } from '@/services/iam/store/user-group-page-store';
 
@@ -29,7 +29,6 @@ const notificationChannelCreateFormState = notificationChannelCreateFormStore.st
 
 const userGroupPageStore = useUserGroupPageStore();
 const userGroupPageState = userGroupPageStore.state;
-const userGroupPageGetters = userGroupPageStore.getters;
 
 interface ChannelInfo {
   channelName: string;
@@ -53,24 +52,8 @@ const { key: notificationProtocolQueryKey, params: notificationProtocolQueryPara
     })),
 });
 
-const { userGroupChannelAPI } = useUserGroupChannelApi();
 
-const { key: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
-    contextKey: computed(() => userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id),
-    params: computed(() => ({
-        channel_id: userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id ?? '',
-    })),
-});
-
-const { data: userGroupChannelData } = useScopedQuery({
-    queryKey: userGroupChannelGetQueryKey.value,
-    queryFn: () => userGroupChannelAPI.get(userGroupChannelGetQueryParams.value),
-    enabled: computed(() => !!userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id),
-    initialData: () => ({
-        name: '',
-    }),
-    gcTime: 1000 * 60 * 2,
-}, ['DOMAIN', 'WORKSPACE']);
+const { userGroupChannelData } = useUserGroupChannelGetQuery();
 
 const { data: notificationProtocolData } = useScopedQuery({
     queryKey: notificationProtocolQueryKey,

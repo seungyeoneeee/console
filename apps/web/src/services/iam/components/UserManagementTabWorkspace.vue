@@ -82,63 +82,6 @@ const userStore = useUserStore();
 const selectedUserId = computed(() => userPageState.selectedUserIds[0] ?? '');
 const { userData } = useUserGetQuery(selectedUserId);
 
-const { key: roleBindingListQueryKey, params: roleBindingListParams } = useServiceQueryKey('identity', 'role-binding', 'list', {
-    params: computed(() => {
-        workspaceApiHelper.setSort(state.sortBy, state.sortDesc);
-        workspaceApiHelper.setFilters([
-            { k: 'user_id', v: userData.value?.user_id || '', o: '=' },
-            { k: 'resource_group', v: RESOURCE_GROUP.WORKSPACE, o: '=' },
-        ]);
-        return { query: workspaceApiHelper.data } as RoleBindingListParameters;
-    }),
-});
-
-const { roleListData } = useRoleListQuery();
-
-const { roleBindingAPI } = useRoleBindingApi();
-const queryClient = useQueryClient();
-
-const { data: roleBindingListData } = useScopedQuery({
-    queryKey: roleBindingListQueryKey,
-    queryFn: () => roleBindingAPI.list(roleBindingListParams.value),
-    select: (data) => data?.results || [],
-    initialData: {
-        results: [],
-        total_count: 0,
-    },
-    gcTime: 1000 * 30,
-    enabled: true,
-}, ['DOMAIN']);
-
-const { workspaceAPI } = useWorkspaceApi();
-
-const { key: workspaceListQueryKey } = useServiceQueryKey('identity', 'workspace', 'list');
-const { data: workspaceListData } = useScopedQuery({
-    queryKey: workspaceListQueryKey,
-    queryFn: () => workspaceAPI.list(),
-    select: (data) => data?.results || [],
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 30,
-    enabled: true,
-}, ['DOMAIN']);
-
-const { key: roleListQueryKey } = useServiceQueryKey('identity', 'role', 'list', {
-    params: computed(() => ({
-        query: {
-            filter: [{ k: 'user_id', v: userData.value?.user_id || '', o: '=' }],
-        },
-    })),
-});
-
-const { roleAPI } = useRoleApi();
-
-const getRoleList = async ({ params }: { params: RoleListParameters }) => queryClient.fetchQuery({
-    queryKey: roleListQueryKey,
-    queryFn: () => roleAPI.list(params),
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 30,
-});
-
 const storeState = reactive({
     timezone: computed<string>(() => userStore.state.timezone ?? 'UTC'),
 });
@@ -218,6 +161,63 @@ const handleClickButton = async (value: string) => {
 const closeRemoveModal = () => {
     modalState.visible = false;
 };
+
+const { key: roleBindingListQueryKey, params: roleBindingListParams } = useServiceQueryKey('identity', 'role-binding', 'list', {
+    params: computed(() => {
+        workspaceApiHelper.setSort(state.sortBy, state.sortDesc);
+        workspaceApiHelper.setFilters([
+            { k: 'user_id', v: userData.value?.user_id || '', o: '=' },
+            { k: 'resource_group', v: RESOURCE_GROUP.WORKSPACE, o: '=' },
+        ]);
+        return { query: workspaceApiHelper.data } as RoleBindingListParameters;
+    }),
+});
+
+const { roleListData } = useRoleListQuery();
+
+const { roleBindingAPI } = useRoleBindingApi();
+const queryClient = useQueryClient();
+
+const { data: roleBindingListData } = useScopedQuery({
+    queryKey: roleBindingListQueryKey,
+    queryFn: () => roleBindingAPI.list(roleBindingListParams.value),
+    select: (data) => data?.results || [],
+    initialData: {
+        results: [],
+        total_count: 0,
+    },
+    gcTime: 1000 * 30,
+    enabled: true,
+}, ['DOMAIN']);
+
+const { workspaceAPI } = useWorkspaceApi();
+
+const { key: workspaceListQueryKey } = useServiceQueryKey('identity', 'workspace', 'list');
+const { data: workspaceListData } = useScopedQuery({
+    queryKey: workspaceListQueryKey,
+    queryFn: () => workspaceAPI.list(),
+    select: (data) => data?.results || [],
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 30,
+    enabled: true,
+}, ['DOMAIN']);
+
+const { key: roleListQueryKey } = useServiceQueryKey('identity', 'role', 'list', {
+    params: computed(() => ({
+        query: {
+            filter: [{ k: 'user_id', v: userData.value?.user_id || '', o: '=' }],
+        },
+    })),
+});
+
+const { roleAPI } = useRoleApi();
+
+const getRoleList = async ({ params }: { params: RoleListParameters }) => queryClient.fetchQuery({
+    queryKey: roleListQueryKey,
+    queryFn: () => roleAPI.list(params),
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 30,
+});
 
 const dropdownMenuHandler: AutocompleteHandler = async (inputText: string) => {
     dropdownState.loading = true;

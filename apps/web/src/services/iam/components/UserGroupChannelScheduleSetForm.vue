@@ -3,13 +3,10 @@ import {
     computed, watchEffect,
 } from 'vue';
 
-import { useUserGroupChannelApi } from '@/api-clients/alert-manager/user-group-channel/composables/use-user-group-channel-api';
-import { useServiceQueryKey } from '@/query/core/query-key/use-service-query-key';
-import { useScopedQuery } from '@/query/service-query/use-scoped-query';
-
 import type { ScheduleSettingFormType } from '@/common/components/schedule-setting-form/schedule-setting-form';
 import ScheduleSettingForm from '@/common/components/schedule-setting-form/ScheduleSettingForm.vue';
 
+import { useUserGroupChannelGetQuery } from '@/services/iam/composables/use-user-group-channel-get-query';
 import { useNotificationChannelCreateFormStore } from '@/services/iam/store/notification-channel-create-form-store';
 import { useUserGroupPageStore } from '@/services/iam/store/user-group-page-store';
 
@@ -22,21 +19,7 @@ const notificationChannelCreateFormState = notificationChannelCreateFormStore.st
 
 const channelId = computed(() => userGroupPageGetters.selectedUserGroupChannel?.[0]?.channel_id ?? '');
 
-const { userGroupChannelAPI } = useUserGroupChannelApi();
-
-const { key: userGroupChannelGetQueryKey, params: userGroupChannelGetQueryParams } = useServiceQueryKey('alert-manager', 'user-group-channel', 'get', {
-    params: computed(() => ({
-        channel_id: channelId.value,
-    })),
-});
-
-const { data: userGroupChannelData } = useScopedQuery({
-    queryKey: userGroupChannelGetQueryKey,
-    queryFn: () => userGroupChannelAPI.get(userGroupChannelGetQueryParams.value),
-    enabled: computed(() => !!channelId.value),
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 60 * 2,
-}, ['DOMAIN', 'WORKSPACE']);
+const { userGroupChannelData } = useUserGroupChannelGetQuery();
 
 /* Component */
 const handleScheduleForm = (value: ScheduleSettingFormType) => {
