@@ -290,7 +290,7 @@ const { mutateAsync: updateRoleBinding } = useMutation({
             type: data.role_type,
             role_binding_id: data.role_binding_id,
         };
-        await queryClient.invalidateQueries({ queryKey: roleBindingListQueryKey });
+        await queryClient.invalidateQueries({ queryKey: roleBindingListQueryKey.value });
     },
     onError: (e: any) => {
         ErrorHandler.handleRequestError(e, e.message);
@@ -310,7 +310,9 @@ const { mutateAsync: deleteRoleBinding, isPending: isDeleteRoleBindingPending } 
     onSuccess: async () => {
         showSuccessMessage(i18n.t('IDENTITY.USER.MAIN.ALT_S_REMOVE_USER'), '');
         closeRemoveModal();
+        await queryClient.invalidateQueries({ queryKey: roleBindingListQueryKey.value });
         await fetchWorkspaceList();
+        await queryClient.invalidateQueries({ queryKey: workspaceListQueryKey.value });
     },
     onError: (e: any) => {
         showErrorMessage(i18n.t('IDENTITY.USER.MAIN.ALT_E_REMOVE_USER'), '');
