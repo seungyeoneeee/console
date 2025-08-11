@@ -14,7 +14,7 @@ export interface UserModel {
     auth_type: AuthType; // backend
     role_type: RoleType;
     role_id?: string;
-    mfa: UserMfa;
+    mfa?: UserMfa;
     language: string;
     timezone: string;
     api_key_count: number;
@@ -26,11 +26,13 @@ export interface UserModel {
 }
 
 export interface UserMfa {
-    state: UserMfaState,
-    mfa_type: MultiFactorAuthType,
-    options: {
+    state?: UserMfaState,
+    mfa_type?: MultiFactorAuthType,
+    options?: {
+        enforce?: boolean, // if true, mfa_type is required
         email?: string,
         user_secret_id?: string,
+        otp_qrcode_uri?: string, // response from 'enable-mfa' verb only
     }
 }
 

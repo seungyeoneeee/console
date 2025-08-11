@@ -12,6 +12,8 @@ import { useAuthorizationStore } from '@/store/authorization/authorization-store
 import { useGrantScopeGuard } from '@/common/composables/grant-scope-guard';
 import { usePageEditableStatus } from '@/common/composables/page-editable-status';
 
+import UserBulkMFASettingModal from '@/services/iam/components/mfa/UserBulkMFASettingModal.vue';
+import UserMFASecretKeyDeleteModal from '@/services/iam/components/mfa/UserMFASecretKeyDeleteModal.vue';
 import UserAssignToGroupModal from '@/services/iam/components/UserAssignToGroupModal.vue';
 import UserManagementAddModal from '@/services/iam/components/UserManagementAddModal.vue';
 import UserManagementFormModal from '@/services/iam/components/UserManagementFormModal.vue';
@@ -24,6 +26,7 @@ import UserManagementStatusModal from '@/services/iam/components/UserManagementS
 import UserManagementTab from '@/services/iam/components/UserManagementTab.vue';
 import UserManagementTable from '@/services/iam/components/UserManagementTable.vue';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
+
 
 const appContextStore = useAppContextStore();
 const userPageStore = useUserPageStore();
@@ -48,9 +51,9 @@ const refreshUserList = async () => {
         .setPageStart(userPageState.pageStart).setPageLimit(userPageState.pageLimit)
         .setFilters(userPageState.searchFilters);
     try {
-        if (storeState.isAdminMode && storeState.grantInfo.scope === 'DOMAIN') {
+        if (storeState.isAdminMode && storeState.grantInfo?.scope === 'DOMAIN') {
             await userPageStore.listUsers({ query: userListApiQueryHelper.data });
-        } else if (storeState.grantInfo.scope === 'WORKSPACE') {
+        } else if (storeState.grantInfo?.scope === 'WORKSPACE') {
             await userPageStore.listWorkspaceUsers({ query: userListApiQueryHelper.data });
         }
     } finally {
@@ -102,6 +105,12 @@ onUnmounted(() => {
         />
         <user-assign-to-group-modal v-if="hasReadWriteAccess"
                                     @confirm="refreshUserList"
+        />
+        <user-bulk-m-f-a-setting-modal v-if="hasReadWriteAccess"
+                                       @confirm="refreshUserList"
+        />
+        <user-m-f-a-secret-key-delete-modal v-if="hasReadWriteAccess"
+                                            @confirm="refreshUserList"
         />
     </section>
 </template>

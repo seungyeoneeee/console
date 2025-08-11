@@ -38,11 +38,18 @@ const state = reactive({
             label: i18n.t('IAM.USER.MAIN.DISABLE'),
             disabled: !state.isSelected || userPageGetters.selectedUsers[0].state === USER_STATE.DISABLE,
         },
+        {
+            type: 'item',
+            name: USER_MODAL_TYPE.SET_MFA,
+            label: i18n.t('IAM.USER.MAIN.SET_MFA'),
+            disabled: !state.isSelected || !isMfaBulkControlEnabled.value,
+        },
     ])),
 });
+const isMfaBulkControlEnabled = computed(() => userPageGetters.selectedUsers.some((user) => user.auth_type === 'LOCAL'));
 
 /* Component */
-const handleSelectDropdown = (name:string) => {
+const handleSelectDropdown = (name: typeof USER_MODAL_TYPE[keyof typeof USER_MODAL_TYPE]) => {
     switch (name) {
     case USER_MODAL_TYPE.ENABLE: userPageStore.updateModalSettings({
         type: name,
@@ -62,12 +69,19 @@ const handleSelectDropdown = (name:string) => {
         themeColor: 'alert',
         modalVisibleType: 'status',
     }); break;
-    case USER_MODAL_TYPE.UPDATE: userPageStore.updateModalSettings({
-        type: name,
-        title: i18n.t('IAM.USER.MAIN.MODAL.UPDATE_TITLE'),
-        themeColor: 'primary',
-        modalVisibleType: 'form',
-    }); break;
+    case USER_MODAL_TYPE.UPDATE:
+        userPageStore.updateModalSettings({
+            type: name,
+            title: i18n.t('IAM.USER.MAIN.MODAL.UPDATE_TITLE'),
+            themeColor: 'primary',
+            modalVisibleType: 'form',
+        });
+        if (userPageGetters.selectedUsers.length) { // NOTE: temporarily setting before vue query is ready
+            const selectedUser = userPageGetters.selectedUsers[0];
+            userPageStore.setSelectedUserForForm(selectedUser);
+        }
+        break;
+    case USER_MODAL_TYPE.SET_MFA: userPageStore.setBulkMfaSettingModalVisible(true); break;
     default: break;
     }
 };
