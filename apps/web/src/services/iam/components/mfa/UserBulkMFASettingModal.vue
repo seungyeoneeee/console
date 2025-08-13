@@ -18,6 +18,7 @@ import ErrorHandler from '@/common/composables/error/errorHandler';
 
 import UserMFASettingFormLayout from '@/services/iam/components/mfa/UserMFASettingFormLayout.vue';
 import { useUserUpdateMutation } from '@/services/iam/composables/mutations/use-user-update-mutation';
+import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
 import { USER_MODAL_MAP } from '@/services/iam/constants/modal.constant';
 import { MULTI_FACTOR_AUTH_ITEMS } from '@/services/iam/constants/user-constant';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
@@ -33,19 +34,23 @@ const emit = defineEmits<UserBulkMFASettingModalEmits>();
 const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
 const userPageModalState = userPageStore.modalState;
-const userPageGetters = userPageStore.getters;
 const userStore = useUserStore();
 
 /* State */
 const selectedMfaType = ref<MultiFactorAuthType>(MULTI_FACTOR_AUTH_ITEMS[0].type);
 const isRequiredMfa = ref(false);
 
+const selectedUserIds = computed<string[]>(() => userPageState.selectedUserIds);
+
+const { userListData: selectedUsers } = useUserListQuery(selectedUserIds);
+
+
 /* Computed */
 // Only Local Auth Type Users can be updated
-const selectedMFAControllableUsers = computed<UserListItemType[]>(() => userPageGetters.selectedUsers.filter((user) => user.auth_type === 'LOCAL'));
+const selectedMFAControllableUsers = computed<UserListItemType[]>(() => selectedUsers.value?.filter((user) => user.auth_type === 'LOCAL') || []);
 
 // UI Conditions
-const isIncludedExternalAuthTypeUser = computed<boolean>(() => userPageGetters.selectedUsers.some((user) => user.auth_type !== 'LOCAL'));
+const isIncludedExternalAuthTypeUser = computed<boolean>(() => selectedUsers.value?.some((user) => user.auth_type !== 'LOCAL') || false);
 
 /* API */
 // Store failed user IDs
