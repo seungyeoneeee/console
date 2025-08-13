@@ -12,6 +12,8 @@ import { PButtonModal } from '@cloudforet/mirinae';
 import { RESOURCE_GROUP } from '@/api-clients/_common/schema/constant';
 import type { Tags } from '@/api-clients/_common/schema/model';
 import type { RoleCreateParameters } from '@/api-clients/identity/role-binding/schema/api-verbs/create';
+import { MFA_STATE } from '@/api-clients/identity/user-profile/schema/constant';
+import type { MultiFactorAuthType } from '@/api-clients/identity/user-profile/schema/type';
 import type { UserCreateParameters } from '@/api-clients/identity/user/schema/api-verbs/create';
 import type { AuthType } from '@/api-clients/identity/user/schema/type';
 import type { WorkspaceUserCreateParameters } from '@/api-clients/identity/workspace-user/schema/api-verbs/create';
@@ -25,6 +27,7 @@ import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
+import UserMFASettingEnforceForm from '@/services/iam/components/mfa/UserMFASettingEnforceForm.vue';
 import UserManagementAddAdminRole from '@/services/iam/components/UserManagementAddAdminRole.vue';
 import UserManagementAddPassword from '@/services/iam/components/UserManagementAddPassword.vue';
 import UserManagementAddRole from '@/services/iam/components/UserManagementAddRole.vue';
@@ -34,11 +37,15 @@ import { useRoleBindingCreateMutation } from '@/services/iam/composables/use-rol
 import { useUserCreateMutation } from '@/services/iam/composables/use-user-create-mutation';
 import { useWorkspaceGroupAddUsersMutation } from '@/services/iam/composables/use-workspace-group-add-users-mutation';
 import { useWorkspaceUserCreateMutation } from '@/services/iam/composables/use-workspace-user-create-mutation';
-import { USER_MODAL_TYPE } from '@/services/iam/constants/user-constant';
+import { MULTI_FACTOR_AUTH_ITEMS, USER_MODAL_TYPE } from '@/services/iam/constants/user-constant';
 import { checkEmailFormat } from '@/services/iam/helpers/user-management-form-validations';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
 import type { AddModalMenuItem, AddAdminRoleFormState } from '@/services/iam/types/user-type';
 
+interface UserMFASettingFormState {
+    isRequiredMfa: boolean;
+    selectedMfaType: MultiFactorAuthType;
+}
 
 
 const userPageStore = useUserPageStore();
@@ -86,6 +93,11 @@ const state = reactive({
     isSetAdminRole: false,
     // tag
     tags: {} as Tags,
+});
+
+const mfaSettingState = reactive<UserMFASettingFormState>({
+    isRequiredMfa: false,
+    selectedMfaType: MULTI_FACTOR_AUTH_ITEMS[0].type,
 });
 
 /* Component */
@@ -164,6 +176,11 @@ const fetchCreateUser = async (item: AddModalMenuItem): Promise<void> => {
         language: domainSettings?.language || 'en',
         timezone: domainSettings?.timezone || 'UTC',
     };
+
+    if (userPageState.isAdminMode && userInfoParams.auth_type === 'LOCAL') {
+        userInfoParams.enforce_mfa_state = mfaSettingState.isRequiredMfa ? MFA_STATE.ENABLED : undefined;
+        userInfoParams.enforce_mfa_type = mfaSettingState.isRequiredMfa ? mfaSettingState.selectedMfaType : undefined;
+    }
 
     const createRoleBinding = async () => {
         if (userPageStore.getters.isWorkspaceOwner || state.isSetAdminRole) {
@@ -271,6 +288,13 @@ watch(() => route.query, (query) => {
                                               :password.sync="state.password"
                                               :disabled-reset-password="state.disabledResetPassword"
                 />
+                <div v-if="userPageState.isAdminMode && state.userList.length > 0 && !state.userList.some((item) => item.auth_type === 'EXTERNAL')"
+                     class="p-3 bg-white rounded-lg"
+                >
+                    <user-m-f-a-setting-enforce-form :is-required-mfa.sync="mfaSettingState.isRequiredMfa"
+                                                     :selected-mfa-type.sync="mfaSettingState.selectedMfaType"
+                    />
+                </div>
                 <user-management-add-admin-role v-if="userPageState.isAdminMode"
                                                 :is-set-admin-role.sync="state.isSetAdminRole"
                                                 @change-input="handleAdminRoleChangeInput"

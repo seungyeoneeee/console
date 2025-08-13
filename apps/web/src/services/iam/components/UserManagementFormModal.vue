@@ -16,6 +16,8 @@ import type { RoleBindingListParameters } from '@/api-clients/identity/role-bind
 import type { RoleBindingUpdateRoleParameters } from '@/api-clients/identity/role-binding/schema/api-verbs/update-role';
 import type { RoleBindingModel } from '@/api-clients/identity/role-binding/schema/model';
 import { ROLE_TYPE } from '@/api-clients/identity/role/constant';
+import { MFA_STATE } from '@/api-clients/identity/user-profile/schema/constant';
+import type { MultiFactorAuthType } from '@/api-clients/identity/user-profile/schema/type';
 import { useUserApi } from '@/api-clients/identity/user/composables/use-user-api';
 import type { UserUpdateParameters } from '@/api-clients/identity/user/schema/api-verbs/update';
 import type { UserMfa, UserModel } from '@/api-clients/identity/user/schema/model';
@@ -25,51 +27,44 @@ import { i18n } from '@/translations';
 import { useUserStore } from '@/store/user/user-store';
 
 import config from '@/lib/config';
-import { postUserDisableMfa } from '@/lib/helper/multi-factor-auth-helper';
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 import { postUserValidationEmail } from '@/lib/helper/verify-email-helper';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
+import UserMFASettingFormLayout from '@/services/iam/components/mfa/UserMFASettingFormLayout.vue';
 import UserManagementAddTag from '@/services/iam/components/UserManagementAddTag.vue';
 import UserManagementFormAdminRole from '@/services/iam/components/UserManagementFormAdminRole.vue';
 import UserManagementFormInfoForm from '@/services/iam/components/UserManagementFormInfoForm.vue';
-import UserManagementFormMultiFactorAuth
-    from '@/services/iam/components/UserManagementFormMultiFactorAuth.vue';
 import UserManagementFormNotificationEmailForm
     from '@/services/iam/components/UserManagementFormNotificationEmailForm.vue';
 import UserManagementFormPasswordForm from '@/services/iam/components/UserManagementFormPasswordForm.vue';
+import { useUserGetQuery } from '@/services/iam/composables/use-admin-user-get-query';
 import { useRoleListQuery } from '@/services/iam/composables/use-role-list-query';
-import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
-import { PASSWORD_TYPE } from '@/services/iam/constants/user-constant';
+import { USER_MODAL_MAP } from '@/services/iam/constants/modal.constant';
+import { MULTI_FACTOR_AUTH_ITEMS, PASSWORD_TYPE } from '@/services/iam/constants/user-constant';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
-import type { AddModalMenuItem, UserListItemType } from '@/services/iam/types/user-type';
+import type { AddModalMenuItem } from '@/services/iam/types/user-type';
 
-
-interface UserManagementData {
-    user_id: string;
-    name: string;
-    email: string;
-    tags: Tags;
-    password: string;
-    reset_password?: boolean;
-    backend?: string;
-    user_type?: string;
+interface UserMFASettingFormState {
+    isRequiredMfa: boolean;
+    selectedMfaType: MultiFactorAuthType;
 }
 
 const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
 const userStore = useUserStore();
 
-const selectedUserIds = computed<string[]>(() => userPageState.selectedUserIds);
-const { userListData: selectedUsers } = useUserListQuery(selectedUserIds);
 const { roleListData: roles } = useRoleListQuery();
+const { data: userData, isLoading: isUserLoading } = useUserGetQuery({
+    userId: computed(() => userPageState.selectedUserForForm?.user_id || ''),
+});
 
 const emit = defineEmits<{(e: 'confirm'): void; }>();
 
 const state = reactive({
     mfaLoading: false,
-    data: computed<UserListItemType>(() => selectedUsers.value?.[0] ?? {}),
+    data: computed<UserModel|undefined>(() => userData.value as UserModel),
     smtpEnabled: computed(() => config.get('SMTP_ENABLED')),
     mfa: computed<UserMfa|undefined>(() => userStore.state.mfa),
     loginUserId: computed<string|undefined>(() => userStore.state.userId),
@@ -77,6 +72,12 @@ const state = reactive({
     isChangedRoleToggle: false,
     roleBindingList: [] as RoleBindingModel[],
 });
+
+const mfaSettingFormState = reactive<UserMFASettingFormState>({
+    isRequiredMfa: false,
+    selectedMfaType: MULTI_FACTOR_AUTH_ITEMS[0].type,
+});
+
 const formState = reactive({
     name: '',
     email: '',
@@ -92,16 +93,20 @@ const formState = reactive({
 });
 
 /* Components */
-const handleClose = () => {
+const closeModal = () => {
     userPageStore.$patch((_state) => {
         _state.state.modal.visible = undefined;
         _state.state.modal = cloneDeep(_state.state.modal);
     });
 };
+const handleClose = () => {
+    closeModal();
+    userPageStore.setSelectedUserForForm(undefined);
+};
 const setForm = () => {
-    formState.name = state.data.name || '';
-    formState.email = state.data.email || '';
-    formState.tags = state.data.tags || {};
+    formState.name = state.data?.name || '';
+    formState.email = state.data?.email || '';
+    formState.tags = state.data?.tags || {};
 };
 const handleChangeInputs = (value) => {
     if (value.email) formState.email = value.email;
@@ -110,13 +115,13 @@ const handleChangeInputs = (value) => {
     if (value.passwordType) formState.passwordType = value.passwordType;
     if (value.role) formState.role = value.role;
 };
-const buildUserInfoParams = (): UserManagementData => ({
-    user_id: state.data.user_id || '',
+const buildUserInfoParams = (): UserUpdateParameters => ({
+    user_id: state.data?.user_id || '',
     name: formState.name,
-    email: formState.isValidEmail ? formState.email : state.data.email || '',
+    email: formState.isValidEmail ? formState.email : state.data?.email || '',
     tags: formState.tags || {},
     password: formState.password || '',
-    reset_password: state.data.auth_type === 'LOCAL' && formState.passwordType === PASSWORD_TYPE.RESET,
+    reset_password: state.data?.auth_type === 'LOCAL' && formState.passwordType === PASSWORD_TYPE.RESET,
 });
 
 const { userAPI } = useUserApi();
@@ -124,22 +129,27 @@ const { key: userListQueryKey } = useServiceQueryKey('identity', 'user', 'list')
 const { withSuffix: userGetQueryKey } = useServiceQueryKey('identity', 'user', 'get');
 const queryClient = useQueryClient();
 
+const handleOpenDisableMfaModal = () => {
+    closeModal();
+    userPageStore.setMfaSecretKeyDeleteModalVisible(true);
+    userPageStore.setPreviousModalType(USER_MODAL_MAP.UPDATE);
+    console.log('handleOpenDisableMfaModal22');
+};
+
+
 const { mutateAsync: updateUser } = useMutation({
     mutationFn: userAPI.update,
     onSuccess: async () => {
         if (formState.isValidEmail) {
             await updateUserEmail();
             await verifyUserEmail();
-            if (state.loginUserId === state.data.user_id) {
+            if (state.loginUserId === state.data?.user_id) {
                 await userStore.updateUser({
-                    email: state.data.email,
+                    email: state.data?.email,
                 });
                 userStore.setEmailVerified(true);
             }
-            userPageStore.setUserEmail(state.data.user_id, state.data.email);
-        }
-        if (state.isChangedMfaToggle) {
-            await fetchPostDisableMfa();
+            userPageStore.setUserEmail(state.data?.user_id, state.data?.email);
         }
 
         if (state.roleBindingList.length > 0 && !state.isChangedRoleToggle) {
@@ -149,23 +159,40 @@ const { mutateAsync: updateUser } = useMutation({
         }
 
         await queryClient.invalidateQueries({ queryKey: userListQueryKey.value });
-        await queryClient.invalidateQueries({ queryKey: userGetQueryKey(state.data.user_id ?? '') });
+        await queryClient.invalidateQueries({ queryKey: userGetQueryKey(state.data?.user_id ?? '') });
+
         showSuccessMessage(i18n.t('IAM.USER.MAIN.MODAL.ALT_S_UPDATE_USER'), '');
-        handleClose();
+        closeModal();
         emit('confirm');
     },
     onError: (e) => {
         ErrorHandler.handleRequestError(e, i18n.t('IAM.USER.MAIN.MODAL.ALT_E_UPDATE_USER'));
+    },
+    onSettled: () => {
+        userPageStore.setSelectedUserForForm(undefined);
     },
 });
 
 /* API */
 const handleConfirm = async () => {
     const userInfoParams = buildUserInfoParams();
+    if (state.data?.auth_type === 'LOCAL') { // Only Local Auth Type Users can be updated
+        const existingMfa = state.data?.mfa;
+        if (!!existingMfa?.options?.enforce !== mfaSettingFormState.isRequiredMfa) { // switch required mfa state Case
+            userInfoParams.enforce_mfa_state = mfaSettingFormState.isRequiredMfa ? MFA_STATE.ENABLED : MFA_STATE.DISABLED;
+            if (userInfoParams.enforce_mfa_state === MFA_STATE.ENABLED) {
+                userInfoParams.enforce_mfa_type = mfaSettingFormState.isRequiredMfa ? mfaSettingFormState.selectedMfaType : undefined;
+            }
+        } else if (mfaSettingFormState.isRequiredMfa && existingMfa?.mfa_type !== mfaSettingFormState.selectedMfaType) { // switch mfa type Case (enforce mfa state is true)
+            userInfoParams.enforce_mfa_state = MFA_STATE.ENABLED;
+            userInfoParams.enforce_mfa_type = mfaSettingFormState.selectedMfaType;
+        }
+    }
     await updateUser(userInfoParams);
 };
+
 const fetchRoleBinding = async (item?: AddModalMenuItem) => {
-    if (state.data.user_id === userStore.state.userId) return;
+    if (state.data?.user_id === userStore.state.userId) return;
     if (isEmpty(formState.role)) return;
 
     const roleParams = {
@@ -179,7 +206,7 @@ const fetchRoleBinding = async (item?: AddModalMenuItem) => {
             await SpaceConnector.clientV2.identity.roleBinding.create<RoleCreateParameters, RoleBindingModel>({
                 ...roleParams,
                 workspace_id: item?.name || '',
-                user_id: state.data.user_id || '',
+                user_id: state.data?.user_id || '',
                 resource_group: RESOURCE_GROUP.DOMAIN,
             });
         } else {
@@ -203,27 +230,10 @@ const fetchDeleteRoleBinding = async () => {
         ErrorHandler.handleRequestError(e, e.message);
     }
 };
-const fetchPostDisableMfa = async () => {
-    state.mfaLoading = true;
-    try {
-        await postUserDisableMfa({
-            user_id: state.data.user_id || '',
-        });
-        if (state.loginUserId === state.data.user_id) {
-            userStore.setMfa({
-                ...state.data.mfa as UserMfa,
-                state: 'DISABLED',
-            });
-        }
-    } catch (e: any) {
-        ErrorHandler.handleRequestError(e, e.message);
-    } finally {
-        state.mfaLoading = false;
-    }
-};
+
 const fetchListRoleBindingInfo = async () => {
     const response = await SpaceConnector.clientV2.identity.roleBinding.list<RoleBindingListParameters, ListResponse<RoleBindingModel>>({
-        user_id: state.data.user_id || '',
+        user_id: state.data?.user_id || '',
         query: {
             filter: [{ k: 'role_type', v: ROLE_TYPE.DOMAIN_ADMIN, o: 'eq' }],
         },
@@ -242,14 +252,14 @@ const fetchListRoleBindingInfo = async () => {
 };
 const updateUserEmail = async () => {
     await SpaceConnector.clientV2.identity.user.update<UserUpdateParameters, UserModel>({
-        user_id: state.data.user_id || '',
-        email: state.data.email || '',
+        user_id: state.data?.user_id || '',
+        email: state.data?.email || '',
     });
 };
 const verifyUserEmail = async () => {
     await postUserValidationEmail({
-        user_id: state.data.user_id || '',
-        email: state.data.email || '',
+        user_id: state.data?.user_id || '',
+        email: state.data?.email || '',
     });
 };
 
@@ -266,12 +276,20 @@ watch(() => userPageState.modal.visible, async (visible) => {
         formState.role = {} as AddModalMenuItem;
     }
 });
+
+watch(() => state.data?.mfa, (mfa) => {
+    if (mfa) {
+        mfaSettingFormState.isRequiredMfa = !!mfa.options?.enforce;
+        mfaSettingFormState.selectedMfaType = mfa.mfa_type || MULTI_FACTOR_AUTH_ITEMS[0].type;
+    }
+}, { immediate: true });
 </script>
 
 <template>
     <p-button-modal class="user-management-modal"
                     :header-title="userPageState.modal.title"
                     size="md"
+                    :loading="isUserLoading"
                     :fade="true"
                     :backdrop="true"
                     :visible="userPageState.modal.visible === 'form'"
@@ -288,10 +306,15 @@ watch(() => userPageState.modal.visible, async (visible) => {
                     @change-input="handleChangeInputs"
                 />
                 <user-management-form-password-form
-                    v-if="state.data.auth_type === 'LOCAL'"
+                    v-if="state.data?.auth_type === 'LOCAL'"
                     @change-input="handleChangeInputs"
                 />
-                <user-management-form-multi-factor-auth :is-changed-toggle.sync="state.isChangedMfaToggle" />
+                <user-m-f-a-setting-form-layout v-if="state.data?.auth_type === 'LOCAL'"
+                                                :selected-mfa-controllable-target="state.data"
+                                                :is-required-mfa.sync="mfaSettingFormState.isRequiredMfa"
+                                                :selected-mfa-type.sync="mfaSettingFormState.selectedMfaType"
+                                                @click-disable-mfa="handleOpenDisableMfaModal"
+                />
                 <user-management-form-admin-role v-if="userPageState.isAdminMode"
                                                  :role.sync="formState.role"
                                                  :is-changed-toggle.sync="state.isChangedRoleToggle"
