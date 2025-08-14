@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 
+import { useQueryClient } from '@tanstack/vue-query';
+
 import {
     PButtonModal, PScopedNotification,
 } from '@cloudforet/mirinae';
 
 import { MFA_STATE } from '@/api-clients/identity/user-profile/schema/constant';
 import type { MultiFactorAuthType } from '@/api-clients/identity/user-profile/schema/type';
+import { useUserApi } from '@/api-clients/identity/user/composables/use-user-api';
 import type { UserUpdateParameters } from '@/api-clients/identity/user/schema/api-verbs/update';
+import { useServiceQueryKey } from '@/query/core/query-key/use-service-query-key';
 import { i18n } from '@/translations';
 
 import { useUserStore } from '@/store/user/user-store';
@@ -17,7 +21,6 @@ import { showErrorMessage, showSuccessMessage } from '@/lib/helper/notice-alert-
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
 import UserMFASettingFormLayout from '@/services/iam/components/mfa/UserMFASettingFormLayout.vue';
-import { useUserUpdateMutation } from '@/services/iam/composables/mutations/use-user-update-mutation';
 import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
 import { USER_MODAL_MAP } from '@/services/iam/constants/modal.constant';
 import { MULTI_FACTOR_AUTH_ITEMS } from '@/services/iam/constants/user-constant';
@@ -56,13 +59,21 @@ const isIncludedExternalAuthTypeUser = computed<boolean>(() => selectedUsers.val
 // Store failed user IDs
 const failedUserIds = new Set<string>();
 
-const { mutateAsync: updateUser, isPending: isUpdateUserPending } = useUserUpdateMutation({
-    onError: (error: any, variables: UserUpdateParameters) => {
-        // Store failed user IDs for logging failed users
-        failedUserIds.add(variables.user_id);
+const queryClient = useQueryClient();
+const { key: userListKey } = useServiceQueryKey('identity', 'user', 'list');
+
+const { userAPI } = useUserApi();
+const isUpdateUserPending = ref(false);
+
+const updateUser = async (params: UserUpdateParameters) => {
+    try {
+        const result = await userAPI.update(params);
+        return result;
+    } catch (error: any) {
+        failedUserIds.add(params.user_id);
         throw new Error(error.message);
-    },
-});
+    }
+};
 
 /* Utils */
 const closeModal = () => {
@@ -82,6 +93,8 @@ const handleClose = () => {
 const handleConfirm = async () => {
     if (isUpdateUserPending.value) return;
 
+    isUpdateUserPending.value = true;
+
     // Update MFA Promise for each user (Bulk)
     const userUpdatePromises = selectedMFAControllableUsers.value.map(async (user) => {
         if (!user.user_id) {
@@ -95,21 +108,29 @@ const handleConfirm = async () => {
             else throw new Error('[User MFA Setting] Something went wrong! Try again later. If the problem persists, please contact support.');
         }
 
-        return updateUser({
+        const updateParams: UserUpdateParameters = {
             user_id: user.user_id,
             enforce_mfa_state: isRequiredMfa.value ? MFA_STATE.ENABLED : MFA_STATE.DISABLED,
-            enforce_mfa_type: selectedMfaType.value,
-        });
+        };
+
+        if (isRequiredMfa.value) {
+            updateParams.enforce_mfa_type = selectedMfaType.value;
+        }
+
+        return updateUser(updateParams);
     });
 
     if (userUpdatePromises.length === 0) {
         showErrorMessage('[User MFA Setting] There are no users to update.', '');
+        isUpdateUserPending.value = false;
         return;
     }
 
     try {
         const results = await Promise.allSettled(userUpdatePromises);
         if (results.every((result) => result.status === 'fulfilled')) {
+            await queryClient.invalidateQueries({ queryKey: userListKey.value });
+
             showSuccessMessage(i18n.t('IAM.USER.MAIN.MODAL.MFA.SET_MFA_SUCCESS_MESSAGE'), '');
             closeModal();
             emit('confirm');
@@ -125,6 +146,7 @@ const handleConfirm = async () => {
     } finally {
         // Clear failed user IDs
         failedUserIds.clear();
+        isUpdateUserPending.value = false;
     }
 };
 
@@ -134,6 +156,12 @@ watch(() => userStore.state.mfa, (mfa) => {
         selectedMfaType.value = mfa.mfa_type || MULTI_FACTOR_AUTH_ITEMS[0].type;
     }
 }, { immediate: true });
+
+watch(() => userPageModalState.bulkMfaSettingModalVisible, async (visible) => {
+    if (visible) {
+        await userStore.getUserInfo();
+    }
+});
 </script>
 
 <template>
