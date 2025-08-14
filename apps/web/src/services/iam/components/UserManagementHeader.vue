@@ -14,10 +14,10 @@ import { useUserWorkspaceStore } from '@/store/app-context/workspace/user-worksp
 import { useQueryTags } from '@/common/composables/query-tags';
 
 import { useUserListPaginationQuery } from '@/services/iam/composables/use-user-list-pagination-query';
+import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
 import { USER_MODAL_TYPE, USER_SEARCH_HANDLERS } from '@/services/iam/constants/user-constant';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
 
-import { useUserListQuery } from '../composables/use-user-list-query';
 
 
 interface Props {
