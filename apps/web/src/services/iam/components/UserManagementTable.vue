@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-    computed, onMounted, reactive, ref,
+    computed, onMounted, reactive, ref, watch,
 } from 'vue';
 
 import { useQueryClient } from '@tanstack/vue-query';
@@ -352,6 +352,20 @@ const handleRemoveButton = async () => {
 };
 
 const isWorkspaceGroupUser = (item: ExtendUserListItemType) => !!item?.role_binding_info?.workspace_group_id;
+
+/* Watcher */
+// note: initialize selected indices when user list is updated
+watch(() => state.refinedUserItems, (newItems) => {
+    if (newItems && userPageState.selectedUserIds.length > 0) {
+        const newIndices = userPageState.selectedUserIds
+            .map((userId) => newItems.findIndex((item) => item.user_id === userId))
+            .filter((index) => index !== -1);
+
+        if (newIndices.length > 0) {
+            userPageStore.setSelectedIndices(newIndices);
+        }
+    }
+}, { deep: true });
 </script>
 
 <template>
