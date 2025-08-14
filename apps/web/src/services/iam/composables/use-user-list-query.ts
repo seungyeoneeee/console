@@ -53,6 +53,7 @@ export const useUserListQuery = (userIds?: Ref<string[]>) => {
     }, ['WORKSPACE']);
 
     return {
+        userListKey,
         userListData,
         workspaceUserListData,
     };
