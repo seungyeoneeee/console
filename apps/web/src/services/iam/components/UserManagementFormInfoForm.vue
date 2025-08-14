@@ -5,11 +5,13 @@ import {
     PFieldGroup, PTextInput,
 } from '@cloudforet/mirinae';
 
+import type { UserModel } from '@/api-clients/identity/user/schema/model';
+
 import { useProxyValue } from '@/common/composables/proxy-state';
 
-import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
+import { useUserGetQuery } from '@/services/iam/composables/use-admin-user-get-query';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
-import type { UserListItemType } from '@/services/iam/types/user-type';
+
 
 
 interface Props {
@@ -22,22 +24,24 @@ const props = withDefaults(defineProps<Props>(), {
 const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
 
-const selectedUserIds = computed<string[]>(() => userPageState.selectedUserIds);
-const { userListData: selectedUsers } = useUserListQuery(selectedUserIds);
-
 const emit = defineEmits<{(e: 'update:name', value: string): void}>();
 
+const { data: userData, isLoading: isUserLoading } = useUserGetQuery({
+    userId: computed(() => userPageState.selectedUserForForm?.user_id || ''),
+});
+
 const state = reactive({
-    data: computed<UserListItemType>(() => selectedUsers.value?.[0] ?? {}),
+    data: computed<UserModel|undefined>(() => userData.value),
     proxyName: useProxyValue('name', props, emit),
 });
+
 
 /* Components */
 const handleChangeName = (value: string) => {
     state.proxyName = value;
 };
 const setForm = () => {
-    state.proxyName = state.data.name || '';
+    state.proxyName = userData.value?.name || '';
 };
 
 /* Init */
@@ -51,7 +55,7 @@ onMounted(() => {
         <p-field-group :label="$t('IAM.USER.FORM.USER_ID')"
                        required
         >
-            <p-text-input :value="state.data.user_id"
+            <p-text-input :value="userData?.user_id"
                           disabled
                           block
             />
@@ -59,7 +63,8 @@ onMounted(() => {
         <p-field-group :label="$t('IAM.USER.FORM.NAME')"
                        class="input-form"
         >
-            <p-text-input :value="state.proxyName"
+            <p-text-input :value="userData?.name"
+                          :loading="isUserLoading"
                           class="text-input"
                           block
                           @update:value="handleChangeName"

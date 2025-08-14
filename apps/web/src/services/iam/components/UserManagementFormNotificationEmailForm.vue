@@ -15,9 +15,8 @@ import { emailValidator } from '@/lib/helper/user-validation-helper';
 
 import { useFormValidator } from '@/common/composables/form-validator';
 
-import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
+import { useUserGetQuery } from '@/services/iam/composables/use-admin-user-get-query';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
-import type { UserListItemType } from '@/services/iam/types/user-type';
 
 
 
@@ -25,15 +24,17 @@ const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
 const userStore = useUserStore();
 
-const selectedUserIds = computed<string[]>(() => userPageState.selectedUserIds);
-const { userListData: selectedUsers } = useUserListQuery(selectedUserIds);
-
 const emit = defineEmits<{(e: 'change-input', formState): void,
     (e: 'change-verify', value: boolean): void,
 }>();
 
+
+const { data: userData, isLoading: isUserLoading } = useUserGetQuery({
+    userId: computed(() => userPageState.selectedUserForForm?.user_id || ''),
+});
+
 const state = reactive({
-    data: computed<UserListItemType>(() => selectedUsers.value?.[0] ?? {}),
+    // data: computed<UserModel|undefined>(() => userData.value),
     loading: false,
     isEdit: false,
     isCollapsed: true,
@@ -47,7 +48,7 @@ const {
     invalidState,
     invalidTexts,
 } = useFormValidator({
-    email: state.data.email,
+    email: '',
 }, {
     email(value: string) { return !emailValidator(value) ? '' : i18n.t('IAM.USER.FORM.EMAIL_INVALID'); },
 });
@@ -85,7 +86,7 @@ const handleClickSend = async () => {
 };
 
 /* Watcher */
-watch(() => state.data?.email_verified, (value) => {
+watch(() => userData.value?.email_verified, (value) => {
     state.isValidEmail = value || false;
     if (email.value) {
         state.isEdit = !value;
@@ -106,7 +107,8 @@ watch(() => state.data?.email_verified, (value) => {
             <template #default="{invalid}">
                 <div class="input-form">
                     <!-- HACK: need to apply placeholder changes based on the distinction between open source and SaaS. -->
-                    <p-text-input :value="email"
+                    <p-text-input :value="userData?.email"
+                                  :loading="isUserLoading"
                                   :invalid="invalid"
                                   placeholder="user@spaceone.io"
                                   :disabled="!state.isEdit"

@@ -1,10 +1,14 @@
-import type { InternalAxiosRequestConfig, CreateAxiosDefaults, Axios } from 'axios';
+import type { Axios, CreateAxiosDefaults, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import type { CustomAxiosRequestConfig } from 'axios-auth-refresh/dist/utils';
 import { camelCase } from 'lodash';
 
 import type {
-    APIInfo, MockConfig, AxiosPostResponse, AuthConfig, DevConfig,
+    APIInfo,
+    AuthConfig,
+    AxiosPostResponse,
+    DevConfig,
+    MockConfig,
 } from '@/space-connector/type';
 
 import ServiceAPI from './service-api';
@@ -146,13 +150,8 @@ export class SpaceConnector {
         SpaceConnector.instance.tokenApi.flushToken();
     }
 
-    static setServiceConfig(serviceConfig: Record<string, any>): void {
-        if (SpaceConnector.instance) {
-            SpaceConnector.instance.serviceApi.updateServiceConfig(serviceConfig);
-            SpaceConnector.instance.serviceApiV2.updateServiceConfig(serviceConfig);
-        } else {
-            throw new Error('Not initialized client!');
-        }
+    static removeRefreshToken(): void {
+        SpaceConnector.instance.tokenApi.removeRefreshToken();
     }
 
     static async refreshAccessToken(executeSessionTimeoutCallback: boolean): Promise<boolean|undefined> {
