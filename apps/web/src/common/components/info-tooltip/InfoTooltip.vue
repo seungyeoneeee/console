@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import type { TranslateResult } from 'vue-i18n';
-
 import { PTooltip, PI } from '@cloudforet/mirinae';
 import type { TooltipPosition } from '@cloudforet/mirinae/types/data-display/tooltips/type';
 
 interface Props {
-    tooltipContents: string|TranslateResult;
+    tooltipContents: string;
     tooltipPosition?: TooltipPosition;
     width?: string;
     height?: string;

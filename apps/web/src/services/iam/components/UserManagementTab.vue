@@ -198,20 +198,15 @@ const dropdownMenuHandler: AutocompleteHandler = async (inputText: string) => {
         results: dropdownState.menuItems,
     };
 };
-
 const { key: userListQueryKey } = useServiceQueryKey('identity', 'workspace-user', 'list');
 const { key: userGroupListQueryKey } = useServiceQueryKey('identity', 'role-binding', 'list');
-const { key: userGetQueryKey } = useServiceQueryKey('identity', 'workspace-user', 'get', {
-    contextKey: computed(() => userPageState.selectedUserIds[0] ?? ''),
-});
 const queryClient = useQueryClient();
 
 const { mutateAsync: updateRoleBinding } = useRoleBindingUpdateRoleMutation({
-    onSuccess: async () => {
+    onSuccess: () => {
         showSuccessMessage(i18n.t('IAM.USER.MAIN.ALT_S_CHANGE_ROLE'), '');
-        await queryClient.invalidateQueries({ queryKey: userListQueryKey.value });
-        await queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
-        await queryClient.invalidateQueries({ queryKey: userGetQueryKey.value });
+        queryClient.invalidateQueries({ queryKey: userListQueryKey.value });
+        queryClient.invalidateQueries({ queryKey: userGroupListQueryKey.value });
     },
     onError: (e) => {
         ErrorHandler.handleRequestError(e, e.message);
@@ -361,7 +356,7 @@ watch(() => selectedUsers.value, (val) => {
                         <div v-else />
                     </template>
                     <template #col-tags-format="{value}">
-                        <template v-if="value && typeof value === 'object' && Object.keys(value).length > 0">
+                        <template v-if="value !== undefined && Object.keys(value).length > 0">
                             <p-badge v-for="([key, val], idx) in Object.entries(value)"
                                      :key="`${key}-${val}-${idx}`"
                                      badge-type="subtle"

@@ -1,6 +1,6 @@
 <template>
     <div class="p-select-card"
-         :class="{selected: isSelected, block, disabled, readonly}"
+         :class="{selected: isSelected, block, disabled}"
          :tabindex="tabIndex"
          @click="handleClick"
          v-on="$listeners"
@@ -12,7 +12,7 @@
              width="1.25rem"
              height="1.25rem"
         />
-        <div class="select-card-contents contents">
+        <div class="select-card-contents">
             <slot v-bind="{isSelected}">
                 <p-lazy-img v-if="imageUrl || icon"
                             :src="imageUrl"
@@ -68,10 +68,6 @@ export default defineComponent({
             default: true,
         },
         disabled: {
-            type: Boolean,
-            default: false,
-        },
-        readonly: {
             type: Boolean,
             default: false,
         },
@@ -221,9 +217,6 @@ export default defineComponent({
             opacity: 20%;
         }
     }
-    &.readonly {
-        cursor: not-allowed;
-    }
     .marker {
         @apply absolute;
         left: 0.75rem;
@@ -255,7 +248,7 @@ export default defineComponent({
     }
 
     @media (hover: hover) {
-        &:hover:not(.disabled):not(.readonly) {
+        &:hover:not(.disabled) {
             @apply bg-secondary2;
         }
     }

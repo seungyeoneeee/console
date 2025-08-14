@@ -19,8 +19,6 @@ export const USER_MODAL_TYPE = {
     DISABLE: 'disable',
     UPDATE: 'update',
     ASSIGN: 'assign',
-    SET_MFA: 'set-mfa',
-    DELETE_MFA_SECRET_KEY: 'delete-mfa-secret-key',
 } as const;
 
 // Table

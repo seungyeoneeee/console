@@ -4,8 +4,6 @@ import type { RoleType } from '@/api-clients/identity/role/type';
 import type { UserMfa } from '@/api-clients/identity/user/schema/model';
 import type { AuthType, UserType } from '@/api-clients/identity/user/schema/type';
 
-import type { REQUIRED_ACTIONS } from '@/store/user/constant';
-
 
 export type LanguageCode = 'ko' | 'en' | string;
 // export type Timezone = 'UTC' | 'Asia/Seoul' | string;
@@ -20,7 +18,7 @@ export interface UserStoreState {
     email?: string;
     language?: string;
     timezone?: string;
-    requiredActions?: RequiredAction[];
+    requiredActions?: string[];
     emailVerified?: boolean;
     isSignInLoading?: boolean;
     mfa?: UserMfa
@@ -32,5 +30,3 @@ export interface UserStoreGetters {
     languageLabel: ComputedRef<string>;
     hasAdminOrWorkspaceOwnerRole: ComputedRef<boolean>;
 }
-
-export type RequiredAction = typeof REQUIRED_ACTIONS[keyof typeof REQUIRED_ACTIONS];

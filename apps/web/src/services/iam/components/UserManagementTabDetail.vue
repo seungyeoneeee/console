@@ -50,7 +50,7 @@ const storeState = reactive({
     smtpEnabled: computed(() => config.get('SMTP_ENABLED')),
 });
 
-const selectedUserId = computed<string>(() => userPageState.selectedUserIds[0] ?? '');
+const selectedUserId = computed(() => userPageState.selectedUserIds[0] ?? '');
 const { userData, workspaceUserData } = useUserGetQuery(selectedUserId);
 
 const selectedUser = computed<UserListItemType>(() => userData.value ?? workspaceUserData.value ?? {});
@@ -164,17 +164,12 @@ const handleClickButton = (type: string) => {
         themeColor: 'alert',
         modalVisibleType: 'status',
     }); break;
-    case USER_MODAL_TYPE.UPDATE:
-        userPageStore.updateModalSettings({
-            type,
-            title: i18n.t('IAM.USER.MAIN.MODAL.UPDATE_TITLE'),
-            themeColor: 'primary',
-            modalVisibleType: 'form',
-        });
-        if (userPageState.selectedIndices.length) {
-            userPageStore.setSelectedUserForForm(selectedUser.value);
-        }
-        break;
+    case USER_MODAL_TYPE.UPDATE: userPageStore.updateModalSettings({
+        type,
+        title: i18n.t('IAM.USER.MAIN.MODAL.UPDATE_TITLE'),
+        themeColor: 'primary',
+        modalVisibleType: 'form',
+    }); break;
     default: break;
     }
 };

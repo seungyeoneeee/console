@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-    computed, onMounted, reactive,
-} from 'vue';
-import type { TranslateResult } from 'vue-i18n';
+import { computed, reactive } from 'vue';
 
 import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 import { getCancellableFetcher } from '@cloudforet/core-lib/space-connector/cancellable-fetcher';
@@ -34,7 +31,7 @@ import UserAccountChangePassword from '@/services/my-page/components/UserAccount
 import UserAccountMultiFactorAuth from '@/services/my-page/components/UserAccountMultiFactorAuth.vue';
 import UserAccountNotificationEmail from '@/services/my-page/components/UserAccountNotificationEmail.vue';
 
-const PASSWORD_MIN_LENGTH = 8;
+
 
 const domainStore = useDomainStore();
 const userStore = useUserStore();
@@ -74,13 +71,12 @@ const passwordFormState = reactive({
     loading: false,
     userId: computed<string|undefined>(() => userStore.state.userId),
     isTokenChecked: undefined as boolean|undefined,
-    invalidText: '' as string|TranslateResult,
+    invalidText: '',
 });
 
 const passwordCheckFecher = getCancellableFetcher(SpaceConnector.clientV2.identity.token.issue);
 
 const handleConfirmPasswordCheckModal = async () => {
-    if (passwordFormState.password.length < PASSWORD_MIN_LENGTH) return;
     passwordFormState.loading = true;
     try {
         const result = await passwordCheckFecher<TokenIssueParameters, TokenIssueModel>({
@@ -97,7 +93,7 @@ const handleConfirmPasswordCheckModal = async () => {
                 passwordFormState.isTokenChecked = true;
                 passwordFormState.invalidText = '';
                 passwordFormState.passwordCheckModalVisible = false;
-                showSuccessMessage(i18n.t('COMMON.PROFILE.SUCCESS_PASSWORD_CHECK'), '');
+                showSuccessMessage(i18n.t('COMMON.PROFILE.SUCCESS_PASSWORD_CHECK'));
             } else {
                 passwordFormState.isTokenChecked = false;
                 passwordFormState.invalidText = i18n.t('COMMON.PROFILE.CURRENT_PASSWORD_INVALID');
@@ -109,7 +105,7 @@ const handleConfirmPasswordCheckModal = async () => {
             passwordFormState.isTokenChecked = true;
             passwordFormState.invalidText = '';
             passwordFormState.passwordCheckModalVisible = false;
-            showSuccessMessage(i18n.t('COMMON.PROFILE.SUCCESS_PASSWORD_CHECK'), '');
+            showSuccessMessage(i18n.t('COMMON.PROFILE.SUCCESS_PASSWORD_CHECK'));
         } else {
             passwordFormState.isTokenChecked = false;
             passwordFormState.invalidText = i18n.t('COMMON.PROFILE.CURRENT_PASSWORD_INVALID');
@@ -128,11 +124,6 @@ const handleClickCancel = () => {
     passwordFormState.isTokenChecked = undefined;
     passwordFormState.invalidText = '';
 };
-
-// TODO: remove this after tanstack query is implemented
-onMounted(async () => {
-    await userStore.getUserInfo();
-});
 
 </script>
 
@@ -183,7 +174,7 @@ onMounted(async () => {
         <p-button-modal :header-title="$t('COMMON.PROFILE.PASSWORD_CHECK_TITLE')"
                         :visible.sync="passwordFormState.passwordCheckModalVisible"
                         :loading="passwordFormState.loading"
-                        :disabled="passwordFormState.password.length < PASSWORD_MIN_LENGTH"
+                        :disabled="passwordFormState.password.length < 8"
                         size="sm"
                         @confirm="handleConfirmPasswordCheckModal"
                         @cancel="handleClickCancel"
@@ -203,7 +194,6 @@ onMounted(async () => {
                                           appearance-type="masking"
                                           :invalid="invalid"
                                           block
-                                          @keyup.enter="handleConfirmPasswordCheckModal"
                             />
                         </template>
                     </p-field-group>

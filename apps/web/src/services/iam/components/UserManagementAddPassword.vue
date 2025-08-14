@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
+import type { TranslateResult } from 'vue-i18n';
 
 import {
     PTextInput, PFieldGroup, PToggleButton, PDivider, PFieldTitle, PButton, PCopyButton,
 } from '@cloudforet/mirinae';
 
-import { i18n } from '@/translations';
-
-import { useFormValidator } from '@/common/composables/form-validator';
 import { useProxyValue } from '@/common/composables/proxy-state';
 
 import { generatePassword } from '@/services/iam/helpers/generate-helper';
@@ -33,49 +31,20 @@ const state = reactive({
     isGenerate: false,
     copyButtonVisible: true,
 });
-
-const {
-    forms: {
-        password,
-    },
-    setForm,
-    invalidState,
-    invalidTexts,
-} = useFormValidator({
-    password: '',
-}, {
-    password(value: string) {
-        if (value === '') return '';
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-
-        if (!passwordRegex.test(value)) {
-            return i18n.t('IAM.USER.FORM.PASSWORD_VALIDATION_INVALID');
-        }
-
-        return '';
-    },
+const validationState = reactive({
+    isPasswordValid: undefined as undefined | boolean,
+    passwordInvalidText: '' as TranslateResult | string,
 });
 
 /* Components */
-const handleChangeInput = (value: string) => {
-    setForm('password', value);
-
-    if (!invalidState.password) {
-        state.proxyPassword = value;
-    } else {
-        state.proxyPassword = '';
-    }
-};
 const handleChangeToggleButton = () => {
     state.proxyIsReset = !state.proxyIsReset;
-    if (state.proxyIsReset) {
-        state.proxyPassword = '';
-        handleChangeInput('');
-    }
+};
+const handleChangeInput = (value) => {
+    state.proxyPassword = value;
 };
 const handleClickGenerate = () => {
-    const newPassword = generatePassword();
-    handleChangeInput(newPassword);
+    state.proxyPassword = generatePassword();
 };
 </script>
 
@@ -95,8 +64,8 @@ const handleClickGenerate = () => {
             <p-field-group
                 :label="$t('IAM.USER.FORM.PASSWORD')"
                 :required="true"
-                :invalid="invalidState.password"
-                :invalid-text="invalidTexts.password"
+                :invalid="validationState.isPasswordValid"
+                :invalid-text="validationState.passwordInvalidText"
                 class="password-form-wrapper"
             >
                 <div class="password-form">
@@ -105,10 +74,10 @@ const handleClickGenerate = () => {
                     >
                         {{ $t('IAM.USER.FORM.GENERATE') }}
                     </p-button>
-                    <p-text-input :value="password"
+                    <p-text-input :value="state.proxyPassword"
                                   class="password-input"
                                   :placeholder="$t('IAM.USER.FORM.GENERATE_PLACEHOLDER')"
-                                  :invalid="invalidState.password"
+                                  :invalid="validationState.isPasswordValid"
                                   @update:value="handleChangeInput"
                                   @focusin="() => state.copyButtonVisible = false"
                                   @focusout="() => state.copyButtonVisible = true"

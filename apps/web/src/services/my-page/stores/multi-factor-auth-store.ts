@@ -14,18 +14,6 @@ interface multiFactorAuthState {
     modalInitLoading: boolean,
     modalType: modelType,
 }
-
-interface ModalState {
-    OTPEnableModalVisible: boolean,
-    OTPDisableModalVisible: boolean,
-    emailEnableModalVisible: boolean,
-    emailDisableModalVisible: boolean,
-    OTPReSyncModalVisible: boolean,
-    emailReSyncModalVisible: boolean,
-    OTPSwitchModalVisible: boolean,
-    emailSwitchModalVisible: boolean,
-}
-
 export const useMultiFactorAuthStore = defineStore('multi-factor-auth-store', () => {
     const state = reactive<multiFactorAuthState>({
         enableMfaMap: mapValues(MULTI_FACTOR_AUTH_TYPE, constant(false)),
@@ -33,17 +21,6 @@ export const useMultiFactorAuthStore = defineStore('multi-factor-auth-store', ()
         modalVisible: false,
         modalInitLoading: false,
         modalType: 'FORM',
-    });
-
-    const modalState = reactive<ModalState>({
-        OTPEnableModalVisible: false,
-        OTPDisableModalVisible: false,
-        emailEnableModalVisible: false,
-        emailDisableModalVisible: false,
-        OTPReSyncModalVisible: false,
-        emailReSyncModalVisible: false,
-        OTPSwitchModalVisible: false,
-        emailSwitchModalVisible: false,
     });
 
     const mutations = {
@@ -65,31 +42,6 @@ export const useMultiFactorAuthStore = defineStore('multi-factor-auth-store', ()
         setModalType: (value: modelType) => {
             state.modalType = value;
         },
-        /* Modal Mutations */
-        setOTPEnableModalVisible: (value: boolean) => {
-            modalState.OTPEnableModalVisible = value;
-        },
-        setOTPDisableModalVisible: (value: boolean) => {
-            modalState.OTPDisableModalVisible = value;
-        },
-        setEmailEnableModalVisible: (value: boolean) => {
-            modalState.emailEnableModalVisible = value;
-        },
-        setEmailDisableModalVisible: (value: boolean) => {
-            modalState.emailDisableModalVisible = value;
-        },
-        setOTPReSyncModalVisible: (value: boolean) => {
-            modalState.OTPReSyncModalVisible = value;
-        },
-        setEmailReSyncModalVisible: (value: boolean) => {
-            modalState.emailReSyncModalVisible = value;
-        },
-        setOTPSwitchModalVisible: (value: boolean) => {
-            modalState.OTPSwitchModalVisible = value;
-        },
-        setEmailSwitchModalVisible: (value: boolean) => {
-            modalState.emailSwitchModalVisible = value;
-        },
     };
 
     const actions = {
@@ -104,7 +56,6 @@ export const useMultiFactorAuthStore = defineStore('multi-factor-auth-store', ()
 
     return {
         state,
-        modalState,
         ...mutations,
         ...actions,
     };

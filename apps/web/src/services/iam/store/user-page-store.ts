@@ -17,14 +17,7 @@ import { useAuthorizationStore } from '@/store/authorization/authorization-store
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
-import type { UserModalType } from '@/services/iam/types/modal.type';
 import type { UserListItemType, ModalSettingState, ModalState } from '@/services/iam/types/user-type';
-
-interface UserPageModalState {
-    previousModalType: UserModalType | undefined;
-    bulkMfaSettingModalVisible: boolean;
-    mfaSecretKeyDeleteModalVisible: boolean;
-}
 
 export const useUserPageStore = defineStore('page-user', () => {
     const authorizationStore = useAuthorizationStore();
@@ -35,10 +28,7 @@ export const useUserPageStore = defineStore('page-user', () => {
         selectedUserIds: [] as string[],
         users: [] as UserListItemType[],
         roles: [] as RoleModel[],
-        totalCount: 0,
-        selectedIndices: [] as number[],
-        pageStart: 1,
-        pageLimit: 15,
+        selectedIndices: [],
         searchFilters: [] as ConsoleFilter[],
         // This is for workspace created case in admin mode
         afterWorkspaceCreated: false,
@@ -51,18 +41,9 @@ export const useUserPageStore = defineStore('page-user', () => {
         } as ModalState,
         // Store the selected users from API call (single source of truth for selected users)
         selectedUsers: [] as UserListItemType[],
-        selectedUserForForm: undefined as UserListItemType | undefined,
     });
-
-    const modalState = reactive<UserPageModalState>({
-        previousModalType: undefined,
-        bulkMfaSettingModalVisible: false,
-        mfaSecretKeyDeleteModalVisible: false,
-    });
-
     const getters = reactive({
         isWorkspaceOwner: computed(() => authorizationStore.state.currentRoleInfo?.roleType === ROLE_TYPE.WORKSPACE_OWNER),
-        selectedOnlyWorkspaceUsers: computed(():UserListItemType[] => state.users.filter((user) => !user.role_binding_info?.workspace_group_id)),
         roleMap: computed(() => {
             const map: Record<string, RoleModel> = {};
             state.roles.forEach((role) => {
@@ -71,22 +52,6 @@ export const useUserPageStore = defineStore('page-user', () => {
             return map;
         }),
     });
-
-    const mutations = {
-        setPreviousModalType(type: UserModalType | undefined) {
-            modalState.previousModalType = type;
-        },
-        setBulkMfaSettingModalVisible(visible: boolean) {
-            modalState.bulkMfaSettingModalVisible = visible;
-        },
-        setMfaSecretKeyDeleteModalVisible(visible: boolean) {
-            modalState.mfaSecretKeyDeleteModalVisible = visible;
-        },
-        setSelectedUserForForm(user: UserListItemType | undefined) {
-            state.selectedUserForForm = user;
-        },
-    };
-
     const actions = {
         // User
         reset() {
@@ -142,9 +107,7 @@ export const useUserPageStore = defineStore('page-user', () => {
     };
     return {
         state,
-        modalState,
         getters,
-        ...mutations,
         ...actions,
     };
 });
