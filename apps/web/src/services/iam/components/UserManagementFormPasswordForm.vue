@@ -5,7 +5,6 @@ import {
     PTextInput, PFieldGroup, PRadio, PDivider, PRadioGroup, PI,
 } from '@cloudforet/mirinae';
 
-import type { UserModel } from '@/api-clients/identity/user/schema/model';
 import { i18n } from '@/translations';
 
 import config from '@/lib/config';
@@ -31,7 +30,6 @@ const { data: userData, isLoading: isUserLoading } = useUserGetQuery({
 });
 
 const state = reactive({
-    data: computed<UserModel|undefined>(() => userData.value),
     smtpEnabled: computed(() => config.get('SMTP_ENABLED')),
     passwordStatus: 0,
     passwordTypeArr: computed(() => {
@@ -40,7 +38,7 @@ const state = reactive({
             additionalItems.push({
                 name: PASSWORD_TYPE.RESET,
                 label: i18n.t('COMMON.PROFILE.SEND_LINK'),
-                disabled: !state.data?.email_verified,
+                disabled: !userData.value?.email_verified,
             });
         }
         return [
@@ -180,7 +178,7 @@ onMounted(() => {
                 </p-field-group>
             </form>
         </div>
-        <div v-if="!state.data?.email_verified && !isUserLoading"
+        <div v-if="!userData?.email_verified && !isUserLoading"
              class="help-text-wrapper"
              :loading="isUserLoading"
         >

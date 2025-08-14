@@ -41,7 +41,7 @@ const handleChangeName = (value: string) => {
     state.proxyName = value;
 };
 const setForm = () => {
-    state.proxyName = state.data?.name || '';
+    state.proxyName = userData.value?.name || '';
 };
 
 /* Init */
@@ -55,7 +55,7 @@ onMounted(() => {
         <p-field-group :label="$t('IAM.USER.FORM.USER_ID')"
                        required
         >
-            <p-text-input :value="state.data?.user_id"
+            <p-text-input :value="userData?.user_id"
                           disabled
                           block
             />
@@ -63,7 +63,7 @@ onMounted(() => {
         <p-field-group :label="$t('IAM.USER.FORM.NAME')"
                        class="input-form"
         >
-            <p-text-input :value="state.proxyName"
+            <p-text-input :value="userData?.name"
                           :loading="isUserLoading"
                           class="text-input"
                           block

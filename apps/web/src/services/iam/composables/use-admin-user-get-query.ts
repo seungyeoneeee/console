@@ -12,6 +12,7 @@ interface UseUserGetQueryOptions {
 export const useUserGetQuery = ({ userId }: UseUserGetQueryOptions) => {
     const { userAPI } = useUserApi();
     const { key, params } = useServiceQueryKey('identity', 'user', 'get', {
+        contextKey: userId,
         params: computed(() => ({
             user_id: userId.value,
         })),
