@@ -10,6 +10,8 @@ import { useAuthorizationStore } from '@/store/authorization/authorization-store
 
 import { usePageEditableStatus } from '@/common/composables/page-editable-status';
 
+import UserBulkMFASettingModal from '@/services/iam/components/mfa/UserBulkMFASettingModal.vue';
+import UserMFASecretKeyDeleteModal from '@/services/iam/components/mfa/UserMFASecretKeyDeleteModal.vue';
 import UserAssignToGroupModal from '@/services/iam/components/UserAssignToGroupModal.vue';
 import UserManagementAddModal from '@/services/iam/components/UserManagementAddModal.vue';
 import UserManagementFormModal from '@/services/iam/components/UserManagementFormModal.vue';
@@ -22,6 +24,7 @@ import UserManagementStatusModal from '@/services/iam/components/UserManagementS
 import UserManagementTab from '@/services/iam/components/UserManagementTab.vue';
 import UserManagementTable from '@/services/iam/components/UserManagementTable.vue';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
+
 
 const appContextStore = useAppContextStore();
 const userPageStore = useUserPageStore();
@@ -46,6 +49,8 @@ watch(() => storeState.globalGrantLoading, (globalGrantLoading) => {
 onUnmounted(() => {
     userPageStore.reset();
 });
+
+
 </script>
 
 <template>
@@ -65,6 +70,9 @@ onUnmounted(() => {
         <user-management-status-modal v-if="hasReadWriteAccess" />
         <user-management-form-modal v-if="hasReadWriteAccess" />
         <user-assign-to-group-modal v-if="hasReadWriteAccess" />
+
+        <user-bulk-m-f-a-setting-modal v-if="hasReadWriteAccess" />
+        <user-m-f-a-secret-key-delete-modal v-if="hasReadWriteAccess" />
     </section>
 </template>
 

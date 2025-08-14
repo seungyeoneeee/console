@@ -9,30 +9,27 @@ import { i18n } from '@/translations';
 
 import config from '@/lib/config';
 import {
-    oneLowerCaseValidator,
-    oneNumberValidator,
-    oneUpperCaseValidator,
     samePasswordValidator,
 } from '@/lib/helper/user-validation-helper';
 
 import { useFormValidator } from '@/common/composables/form-validator';
 
-import { useUserListQuery } from '@/services/iam/composables/use-user-list-query';
+import { useUserGetQuery } from '@/services/iam/composables/use-admin-user-get-query';
 import { PASSWORD_TYPE } from '@/services/iam/constants/user-constant';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
-import type { UserListItemType } from '@/services/iam/types/user-type';
 
 
 const userPageStore = useUserPageStore();
 const userPageState = userPageStore.state;
 
-const selectedUserIds = computed<string[]>(() => userPageState.selectedUserIds);
-const { userListData: selectedUsers } = useUserListQuery(selectedUserIds);
-
 const emit = defineEmits<{(e: 'change-input', formState): void}>();
 
+
+const { data: userData, isLoading: isUserLoading } = useUserGetQuery({
+    userId: computed(() => userPageState.selectedUserForForm?.user_id || ''),
+});
+
 const state = reactive({
-    data: computed<UserListItemType>(() => selectedUsers.value?.[0] ?? {}),
     smtpEnabled: computed(() => config.get('SMTP_ENABLED')),
     passwordStatus: 0,
     passwordTypeArr: computed(() => {
@@ -41,7 +38,7 @@ const state = reactive({
             additionalItems.push({
                 name: PASSWORD_TYPE.RESET,
                 label: i18n.t('COMMON.PROFILE.SEND_LINK'),
-                disabled: !state.data.email_verified,
+                disabled: !userData.value?.email_verified,
             });
         }
         return [
@@ -72,9 +69,11 @@ const {
 }, {
     password(value: string) {
         if (value === '') return '';
-        if (!oneLowerCaseValidator(value)) return i18n.t('IDENTITY.USER.FORM.ONE_LOWER_CASE_INVALID');
-        if (!oneUpperCaseValidator(value)) return i18n.t('IDENTITY.USER.FORM.ONE_UPPER_CASE_INVALID');
-        if (!oneNumberValidator(value)) return i18n.t('IDENTITY.USER.FORM.ONE_NUMBER_INVALID');
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+        if (!passwordRegex.test(value)) {
+            return i18n.t('IAM.USER.FORM.PASSWORD_VALIDATION_INVALID');
+        }
         return '';
     },
     passwordCheck(value: string) {
@@ -145,6 +144,7 @@ onMounted(() => {
                 >
                     <template #default="{invalid}">
                         <p-text-input :value="password"
+                                      :loading="isUserLoading"
                                       type="password"
                                       autocomplete="current-password"
                                       appearance-type="masking"
@@ -178,8 +178,9 @@ onMounted(() => {
                 </p-field-group>
             </form>
         </div>
-        <div v-if="!state.data.email_verified"
+        <div v-if="!userData?.email_verified && !isUserLoading"
              class="help-text-wrapper"
+             :loading="isUserLoading"
         >
             <p-i name="ic_info-circle"
                  height="0.875rem"
