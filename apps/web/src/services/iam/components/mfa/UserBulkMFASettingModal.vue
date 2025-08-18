@@ -150,12 +150,18 @@ const handleConfirm = async () => {
     }
 };
 
-watch(() => userStore.state.mfa, (mfa) => {
-    if (mfa) {
-        isRequiredMfa.value = !!mfa.options?.enforce;
-        selectedMfaType.value = mfa.mfa_type || MULTI_FACTOR_AUTH_ITEMS[0].type;
+watch(() => selectedMFAControllableUsers.value, (users) => {
+    if (users.length > 0) {
+        const firstSelectedUser = selectedUserIds.value
+            .map((id) => selectedUsers.value?.find((user) => user.user_id === id))
+            .filter((user) => user && user.auth_type === 'LOCAL')[0];
+
+        if (firstSelectedUser) {
+            isRequiredMfa.value = !!firstSelectedUser.mfa?.options?.enforce;
+            selectedMfaType.value = firstSelectedUser.mfa?.mfa_type || MULTI_FACTOR_AUTH_ITEMS[0].type;
+        }
     }
-}, { immediate: true });
+});
 
 watch(() => userPageModalState.bulkMfaSettingModalVisible, async (visible) => {
     if (visible) {
